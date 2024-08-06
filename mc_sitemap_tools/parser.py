@@ -20,7 +20,8 @@ from urllib.parse import urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
 
-################ usp.exceptions
+# usp.exceptions
+
 
 class SitemapException(Exception):
     """
@@ -42,15 +43,18 @@ class SitemapXMLParsingException(Exception):
     """
     pass
 
+
 class SitemapXMLParsingUnexpectedTag(SitemapXMLParsingException):
     """
     value will be tag name
     """
 
-################ usp.helpers
+# usp.helpers
+
 
 __URL_REGEX = re.compile(r'^https?://[^\s/$.?#].[^\s]*$', re.IGNORECASE)
 """Regular expression to match HTTP(s) URLs."""
+
 
 def is_http_url(url: str) -> bool:
     """
@@ -109,6 +113,7 @@ def html_unescape_strip(string: str) -> str:
 # dicts, so JSONifiable
 # NOTE! At runtime, TypedDicts are just Dict objects!
 
+
 class SitemapEntry(TypedDict, total=False):
     """
     entry from a "urlset" page.
@@ -129,10 +134,13 @@ class SitemapEntry(TypedDict, total=False):
     news_tickers: str
 
 # Just a dict at runtime, so must refer to "type"
+
+
 class BaseSitemap(TypedDict):
     url: str
     type: str                   # urlset or index
     last_fetch_ts: float
+
 
 class Urlset(BaseSitemap):
     """
@@ -141,6 +149,7 @@ class Urlset(BaseSitemap):
     google_news_tags: bool
     pages: list[SitemapEntry]
 
+
 class Index(BaseSitemap):
     """
     sitemap "index" page
@@ -148,6 +157,7 @@ class Index(BaseSitemap):
     sub_sitemap_urls: list[str]
 
 ################
+
 
 class XMLSitemapParser:
     """
@@ -165,7 +175,8 @@ class XMLSitemapParser:
         self._concrete_parser: _AbstractXMLSitemapParser | None = None
 
     def sitemap(self) -> BaseSitemap:
-        parser = xml.parsers.expat.ParserCreate(namespace_separator=self.__XML_NAMESPACE_SEPARATOR)
+        parser = xml.parsers.expat.ParserCreate(
+            namespace_separator=self.__XML_NAMESPACE_SEPARATOR)
         parser.StartElementHandler = self._xml_element_start
         parser.EndElementHandler = self._xml_element_end
         parser.CharacterDataHandler = self._xml_char_data
@@ -204,7 +215,8 @@ class XMLSitemapParser:
             namespace_url = name_parts[0]
             name = name_parts[1]
         else:
-            raise SitemapXMLParsingException(f"Unable to determine namespace for element '{name}'")
+            raise SitemapXMLParsingException(
+                f"Unable to determine namespace for element '{name}'")
 
         if '/sitemap/' in namespace_url:
             name = f'sitemap:{name}'
@@ -250,7 +262,8 @@ class XMLSitemapParser:
         installed as parser.CharacterDataHandler
         """
         if not self._concrete_parser:
-            raise SitemapXMLParsingException("Concrete sitemap parser should be set by now.")
+            raise SitemapXMLParsingException(
+                "Concrete sitemap parser should be set by now.")
         self._concrete_parser.xml_char_data(data=data)
 
 
@@ -303,7 +316,8 @@ class _IndexXMLSitemapParser(_AbstractXMLSitemapParser):
         if name == 'sitemap:loc':
             sub_sitemap_url = html_unescape_strip(self._last_char_data)
             if not is_http_url(sub_sitemap_url):
-                logger.warning("Sub-sitemap URL does not look like one: %s", sub_sitemap_url)
+                logger.warning(
+                    "Sub-sitemap URL does not look like one: %s", sub_sitemap_url)
             else:
                 if sub_sitemap_url and sub_sitemap_url not in self._sub_sitemap_urls:
                     self._sub_sitemap_urls.append(sub_sitemap_url)
@@ -346,13 +360,15 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
             return
 
         if self._current_page is None:
-            raise SitemapXMLParsingException(f"{name}: {self._last_char_data} not inside <url>")
+            raise SitemapXMLParsingException(
+                f"{name}: {self._last_char_data} not inside <url>")
 
         # enforce TypeDict fields
         # All SitemapEntry fields declared as optional, so key not
         # present if tag not seen AND <loc> isn't required to be first.
-        assert name in SitemapEntry.__optional_keys__ 
-        self._current_page[name] = html_unescape_strip(self._last_char_data) # type: ignore[literal-required]
+        assert name in SitemapEntry.__optional_keys__
+        self._current_page[name] = html_unescape_strip(
+            self._last_char_data)  # type: ignore[literal-required]
 
     def _gn_save(self, name: str, required: str = '') -> None:
         """
@@ -403,6 +419,7 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
     def sitemap(self) -> BaseSitemap:
         pages = [page for page in self._pages if page.get("loc")]
         return Urlset(url=self._url, type="urlset", google_news_tags=self._google_news_tags, pages=pages, last_fetch_ts=time.time())
+
 
 if __name__ == '__main__':
     import json
