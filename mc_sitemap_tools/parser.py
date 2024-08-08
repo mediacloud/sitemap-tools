@@ -367,8 +367,8 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
         # All SitemapEntry fields declared as optional, so key not
         # present if tag not seen AND <loc> isn't required to be first.
         assert name in SitemapEntry.__optional_keys__
-        self._current_page[name] = html_unescape_strip(
-            self._last_char_data)  # type: ignore[literal-required]
+        self._current_page[name] = html_unescape_strip(  # type: ignore[literal-required]
+            self._last_char_data)
 
     def _gn_save(self, name: str, required: str = '') -> None:
         """

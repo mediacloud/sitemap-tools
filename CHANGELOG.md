@@ -8,6 +8,10 @@
 
 ## Version 0
 
+### 0.2
+	* 0.2.0: add crawl.py with full_crawl_gnews_urls
+		parser.py: fixed autopep8 induced mypy error
+
 ### 0.1
 	* 0.1.0: add discover.py, this file!
 
