@@ -4,12 +4,14 @@ tools for discovering *news* sitemaps from a home page URL
 when invoked from command line, takes a home page URL
 """
 
-from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT  # TEMP
 import logging
 from typing import cast
 
+# PyPI
 import requests
+from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT  # TEMP
 
+# local package:
 from . import parser
 # from requests_arcana import legacy_ssl_session
 
@@ -35,13 +37,13 @@ _UNPUBLISHED_SITEMAP_INDEX_PATHS = [
 """Paths which are not exposed in robots.txt but might still contain a sitemap index page."""
 
 _UNPUBLISHED_GNEWS_SITEMAP_PATHS = [
-    "arc/outboundfeeds/news-sitemap/?outputType=xml",   # AJC, inquirer, reuters
-    # dallasnews (current, no gtags)
-    'arc/outboundfeeds/sitemap/latest/?outputType=xml',
+    "arc/outboundfeeds/news-sitemap/?outputType=xml", # AJC, inquirer, reuters
+    'arc/outboundfeeds/sitemap/latest/?outputType=xml', # dallasnews (current, no gtags)
+
     'feeds/sitemap_news.xml',  # bloomberg
     'google-news-sitemap.xml',  # ew.com, people.com
     'googlenewssitemap.xml',  # axs.com, accesshollywood.com
-    'news-sitemap.xml',  # gannett-cdn.com (many cities)
+    'news-sitemap.xml',  # gannett-cdn.com (many cities), parade
     'news-sitemap-content.xml',  # scrippsnews.com
     'news/sitemap_news.xml',  # buzzfeed, NPR
     'sitemap_news.xml',  # bloomberg, bizjournals, cnbc
@@ -50,6 +52,7 @@ _UNPUBLISHED_GNEWS_SITEMAP_PATHS = [
     'sitemaps/new/news.xml.gz',  # NYT
     'sitemaps/sitemap-google-news.xml',  # huffpost.com
     'tncms/sitemap/news.xml',  # berkshireeagle, omaha, postandcourier, rutlandherald
+    # 'sitemaps/news',     # thetimes
     # 'feed/google-news-sitemap-feed/sitemap-google-news', # newyorker
 ]
 """Paths which are not exposed in robots.txt but might still contain a google news sitemap page."""
@@ -115,7 +118,6 @@ def check_sitemap_type(url: str, sm: parser.BaseSitemap, accept: int) -> bool:
     if smtype != "urlset":
         return False
     us = cast(parser.Urlset, sm)
-
     if us.get("google_news_tags"):
         return (accept & PageType.GNEWS) != 0
     return (accept & PageType.URLSET) != 0
@@ -214,6 +216,8 @@ def unpublished_gnews_sitemaps(homepage_url: str) -> list[str]:
 def _unpub_path(url: str) -> bool:
     """
     helper: return True if url has a "well known" path
+
+    npr.org robots.txt has feeds with WKPs in domain googlecrawl.npr.org
     """
     for p in _UNPUBLISHED_GNEWS_SITEMAP_PATHS:
         if url.endswith(p):
@@ -222,26 +226,29 @@ def _unpub_path(url: str) -> bool:
 
 
 def find_gnews_fast(homepage_url: str, max_robots_pages: int = 2) -> list[str]:
-    # prefer URLs reported in robots.txt
-    urls = robots_gnews_sitemaps(homepage_url)
-    if urls:
-        if len(urls) <= max_robots_pages:
-            return urls
+    """
+    quickly scan a source for urlsets with google news tags
+    (without following sitemap index page links)
+    """
+
+    # originally returned just robots_urls if reasonable length, but
+    # reuters.com has a feed in robots.txt, but the BEST sitemap is
+    # found using well-known paths.
+    robots_urls = robots_gnews_sitemaps(homepage_url)
+    if len(robots_urls) > max_robots_pages:
         # here if too many urls in robots.txt
         # see if a subset have "well known" paths
-        u2 = [url for url in urls if _unpub_path(url)]
-        if u2 and len(u2) <= max_robots_pages:
-            return u2
+        robots_urls = [url for url in robots_urls if _unpub_path(url)]
+        # XXX check length now?? do what???
+    unpub_urls = unpublished_gnews_sitemaps(homepage_url)
 
-    urls = unpublished_gnews_sitemaps(homepage_url)
-    if len(urls) <= max_robots_pages:
-        return urls
-    return []
+    # return list of union of both robots_urls & unpub_urls (avoid dups)
+    return list(set(robots_urls).union(set(unpub_urls)))
 
 
 if __name__ == '__main__':
     import sys
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.INFO)
 
     # XXX complain about startswith "www."?
     if len(sys.argv) != 2 or '.' not in sys.argv[1]:
@@ -252,10 +259,15 @@ if __name__ == '__main__':
     homepage = "https://www." + domain
 
     # handle options for which method(s) to try!!! types to accept!!!
-    print("-- robots.txt")
-    for url in robots_gnews_sitemaps(homepage):
-        print(url)
+    if False:
+        print("-- robots.txt")
+        for url in robots_gnews_sitemaps(homepage):
+            print(url)
 
-    print("-- unpublished")
-    for url in unpublished_gnews_sitemaps(homepage):
+        print("-- unpublished")
+        for url in unpublished_gnews_sitemaps(homepage):
+            print(url)
+
+    print("-- find_gnews_fast")
+    for url in find_gnews_fast(homepage):
         print(url)

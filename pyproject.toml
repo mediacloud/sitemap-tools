@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "sitemap-tools"
-version = "0.2.0"
+version = "0.2.1"
 description='Media Cloud sitemap tools'
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,10 +13,13 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
 ]
 
-# no dependencies!
+dependencies = [
+    "mediacloud-metadata==1.*",
+    "requests",         # leave un-versioned so dependencies can sort of which version is best
+]
+
 
 [tool.flit.module]
 name = "mc_sitemap_tools"

@@ -9,6 +9,9 @@
 ## Version 0
 
 ### 0.2
+
+	* 0.2.1: have find_gnews_fast union robots & "unpublished" URLS
+		add requirements to pyproject.toml
 	* 0.2.0: add crawl.py with full_crawl_gnews_urls
 		parser.py: fixed autopep8 induced mypy error
 
