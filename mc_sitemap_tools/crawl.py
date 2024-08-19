@@ -55,7 +55,7 @@ class Crawler:
             self.seen.add(canurl)
             self.to_visit.append(url)
 
-    def _add_list(self, url_list: list[str], add_home_page: bool):
+    def _add_list(self, url_list: list[str], add_home_page: bool) -> None:
         for url in url_list:
             if add_home_page:
                 url = self.home_page + url

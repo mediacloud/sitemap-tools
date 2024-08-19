@@ -6,6 +6,18 @@
 * adding a new function requires a new minor version
 * removing a function or adding a new mandatory arg requires a new major version
 
+## Version 1
+
+### 1.0
+	* 1.0.0:
+		+ discover.py updates:
+			- removed unused `page_exists` (breaking change),
+			- add timeout argument to many functions
+			- deduplicate find_gnews_fast output
+			- ran thru autopep8
+		+ pyproject.toml: add mypy settings
+		+ ran mypy on all files, fixed missing return type in crawl.py
+
 ## Version 0
 
 ### 0.2

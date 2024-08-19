@@ -4,8 +4,8 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "sitemap-tools"
-version = "0.2.1"
-description='Media Cloud sitemap tools'
+version = "1.0.0"
+description='Media Cloud news sitemap tools'
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -20,6 +20,16 @@ dependencies = [
     "requests",         # leave un-versioned so dependencies can sort of which version is best
 ]
 
+[tool.mypy]
+# from story-indexer, via rss-fetcher
+# originally from https://blog.wolt.com/engineering/2021/09/30/professional-grade-mypy-configuration/
+disallow_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
 
 [tool.flit.module]
 name = "mc_sitemap_tools"
