@@ -47,6 +47,11 @@ class Crawler:
         self.get_robots = True
 
     def _add_url(self, url: str, home_page: str | None = None) -> None:
+        """
+        `url` may be complete URL (if `home_page` is None),
+        or path to append to `home_page`
+        checks if already seen before adding to `to_visit` list
+        """
         if home_page:
             url = home_page + url
         canurl = _canurl(url)
@@ -56,6 +61,10 @@ class Crawler:
             self.to_visit.append(url)
 
     def _add_list(self, url_list: list[str], add_home_page: bool) -> None:
+        """
+        add list of urls to visit
+        if `add_home_page` is True, prepend `home_page` to each url
+        """
         for url in url_list:
             if add_home_page:
                 url = self.home_page + url
@@ -66,6 +75,8 @@ class Crawler:
         visit one page, returns True while more work to be done
         """
         if self.get_robots:
+            # initial state: seed visit_list with pages in robots.txt
+            # and "well known" paths
             logger.info("getting robots.txt")
             try:
                 self._add_list(discover.robots_sitemaps(self.home_page), False)
@@ -104,6 +115,9 @@ class Crawler:
 
 
 def full_crawl_gnews_urls(home_page: str, sleep_time: float = 1.0) -> list[str]:
+    """
+    Returns list of sitemap urlsets with google_news_tags.
+    """
     results = []
 
     def saver(urlset: parser.Urlset) -> None:
