@@ -1,5 +1,7 @@
 """
-tools for discovering *news* sitemaps from a home page URL
+tools for discovering *news* sitemaps
+(urlsets with google news tags)
+from a home page URL
 
 when invoked from command line, takes a home page URL
 """
@@ -33,7 +35,8 @@ _UNPUBLISHED_SITEMAP_INDEX_PATHS = [
     'admin/config/search/xmlsitemap',
     'sitemap/sitemap-index.xml',
 
-    # not in usp, seen at (AJC, inquirer, elnuevdia, reuters).com (among others)
+    # not in usp, seen at (AJC, inquirer, elnuevdia, reuters).com
+    # (among others)
     'arc/outboundfeeds/sitemap-index/?outputType=xml',
     'arc/outboundfeeds/news-sitemap-index/?outputType=xml',
 ]
@@ -41,9 +44,7 @@ _UNPUBLISHED_SITEMAP_INDEX_PATHS = [
 
 _UNPUBLISHED_GNEWS_SITEMAP_PATHS = [
     "arc/outboundfeeds/news-sitemap/?outputType=xml",  # AJC, inquirer, reuters
-    # dallasnews (current, no gtags)
-    'arc/outboundfeeds/sitemap/latest/?outputType=xml',
-
+    'arc/outboundfeeds/sitemap/latest/?outputType=xml',  # dallasnews
     'feeds/sitemap_news.xml',  # bloomberg
     'google-news-sitemap.xml',  # ew.com, people.com
     'googlenewssitemap.xml',  # axs.com, accesshollywood.com
@@ -59,7 +60,7 @@ _UNPUBLISHED_GNEWS_SITEMAP_PATHS = [
     # 'sitemaps/news',     # thetimes
     # 'feed/google-news-sitemap-feed/sitemap-google-news', # newyorker
 ]
-"""Paths which are not exposed in robots.txt but might still contain a google news sitemap page."""
+"""Paths which might contain a google news sitemap page, even if not in robots.txt"""
 
 
 class PageType:
@@ -106,6 +107,9 @@ def sitemap_get(url: str, timeout: int = _TO) -> parser.BaseSitemap | None:
 
 
 def check_sitemap_type(url: str, sm: parser.BaseSitemap, accept: int) -> bool:
+    """
+    take parsed sitemap page and bitmask of acceptable page types
+    """
     smtype = sm.get("type")
     logger.info("%s (%s) %#x", url, smtype, accept)
 
@@ -124,6 +128,10 @@ def check_sitemap_type(url: str, sm: parser.BaseSitemap, accept: int) -> bool:
 def sitemap_get_and_check_type(url: str,
                                accept: int = PageType.ALL,
                                timeout: int = _TO) -> parser.BaseSitemap | None:
+    """
+    fetch `url`, parse, and return parsed result
+    if page type in `accept` bitmask
+    """
     sm = sitemap_get(url, timeout=timeout)
     if not sm:
         return None
@@ -132,10 +140,14 @@ def sitemap_get_and_check_type(url: str,
     return None
 
 
-def robots_sitemaps(url: str, homepage: bool = True, timeout: int = _TO) -> list[str]:
+def robots_sitemaps(url: str, homepage: bool = True,
+                    timeout: int = _TO) -> list[str]:
     """
     fetch robots.txt and return URLs of sitemap pages
     (may include RSS URLs!)
+
+    if homepage is True, use as base for robots.txt,
+    else use as full URL without modification
     """
     robots_txt_url = url
     if homepage:
@@ -193,13 +205,17 @@ def robots_gnews_sitemaps(url: str,
                           homepage: bool = True,
                           timeout: int = _TO) -> list[str]:
     """
-    if homepage is True, use as base for robots.txt,
-    else use as full URL without modification
+    Fetch robots.txt using `url`.
+    If `homepage` is True, use as base for robots.txt,
+    else use as full URL without modification.
+
+    Returns list of URLs for urlset pages with google news tags.
     """
     urls = []
     for url in robots_sitemaps(url, homepage, timeout=timeout):
         try:
-            sm = sitemap_get_and_check_type(url, PageType.GNEWS, timeout=timeout)
+            sm = sitemap_get_and_check_type(
+                url, PageType.GNEWS, timeout=timeout)
             if sm:
                 urls.append(url)
         except requests.RequestException as exc:
@@ -207,7 +223,8 @@ def robots_gnews_sitemaps(url: str,
     return urls
 
 
-def unpublished_gnews_sitemaps(homepage_url: str, timeout: int = _TO) -> list[str]:
+def unpublished_gnews_sitemaps(
+        homepage_url: str, timeout: int = _TO) -> list[str]:
     """
     check locations where google news urlsets have been seen
     """
@@ -218,7 +235,8 @@ def unpublished_gnews_sitemaps(homepage_url: str, timeout: int = _TO) -> list[st
     for p in _UNPUBLISHED_GNEWS_SITEMAP_PATHS:
         url = homepage_url + p
         try:
-            sm = sitemap_get_and_check_type(url, PageType.GNEWS, timeout=timeout)
+            sm = sitemap_get_and_check_type(
+                url, PageType.GNEWS, timeout=timeout)
             if sm:
                 urls.append(url)
         except requests.RequestException as exc:
@@ -238,7 +256,8 @@ def _unpub_path(url: str) -> bool:
     return False
 
 
-def find_gnews_fast(homepage_url: str, max_robots_pages: int = 2, timeout: int = _TO) -> list[str]:
+def find_gnews_fast(homepage_url: str, max_robots_pages: int = 2,
+                    timeout: int = _TO) -> list[str]:
     """
     quickly scan a source for urlsets with google news tags
     (without following sitemap index page links)
@@ -284,14 +303,16 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
     # add static tests?
-    print(_unique_feeds(["https://foo.bar", "http://foo.bar"]))
-    print(_unique_feeds(["http://foo.bar", "https://foo.bar"]))
-    print(_unique_feeds(["http://www.foo.bar", "http://foo.bar"]))
-    print(_unique_feeds(["http://foo.bar", "http://www.foo.bar"]))
+    def test(urls: list[str], expect: list[str]) -> None:
+        assert _unique_feeds(urls) == expect
 
-    # XXX complain about startswith "www."?
+    test(["https://foo.bar", "http://foo.bar"], ["https://foo.bar"])
+    test(["http://foo.bar", "https://foo.bar"], ["https://foo.bar"])
+    test(["http://www.foo.bar", "http://foo.bar"], ["http://www.foo.bar"])
+    test(["http://foo.bar", "http://www.foo.bar"], ["http://www.foo.bar"])
+
     if (len(sys.argv) != 2 or '.' not in (domain := sys.argv[1]) or
-            domain.startswith("www") or domain.startswith("http:") or domain.startswith("https:")):
+            domain.startswith("www.") or domain.startswith("http:") or domain.startswith("https:")):
         sys.stderr.write(f"Usage: {sys.argv[0]} DOMAIN\n")
         sys.exit(1)
 

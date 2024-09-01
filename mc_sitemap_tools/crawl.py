@@ -114,7 +114,8 @@ class Crawler:
         return len(self.to_visit) > 0
 
 
-def full_crawl_gnews_urls(home_page: str, sleep_time: float = 1.0) -> list[str]:
+def full_crawl_gnews_urls(
+        home_page: str, sleep_time: float = 1.0) -> list[str]:
     """
     Returns list of sitemap urlsets with google_news_tags.
     """

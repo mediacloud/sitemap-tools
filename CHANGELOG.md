@@ -9,6 +9,11 @@
 ## Version 1
 
 ### 1.0
+	* 1.1.0:
+		+ parser.py:: give ...UnexpectedTag("html?" for suspected html
+		+ docstrings
+		+ ran autopep8
+		+ discover.py: test _unique_feeds when run as script
 	* 1.0.0:
 		+ discover.py updates:
 			- removed unused `page_exists` (breaking change),

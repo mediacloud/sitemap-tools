@@ -11,12 +11,12 @@ import re
 import html
 import logging
 import time
-import xml.parsers.expat
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 from typing import TypedDict
 from urllib.parse import urlparse, urlunparse
+from xml.parsers.expat import ExpatError, ParserCreate
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,8 @@ def is_http_url(url: str) -> bool:
         logger.debug("URL is empty")
         return False
 
-    logger.debug("Testing if URL '%s' is HTTP(s) URL", url)
+    # commented out: too much noise under mcweb
+    # logger.debug("Testing if URL '%s' is HTTP(s) URL", url)
 
     if not re.search(__URL_REGEX, url):
         logger.debug("URL '%s' does not match URL's regexp", url)
@@ -175,15 +176,20 @@ class XMLSitemapParser:
         self._concrete_parser: _AbstractXMLSitemapParser | None = None
 
     def sitemap(self) -> BaseSitemap:
-        parser = xml.parsers.expat.ParserCreate(
+        parser = ParserCreate(
             namespace_separator=self.__XML_NAMESPACE_SEPARATOR)
         parser.StartElementHandler = self._xml_element_start
         parser.EndElementHandler = self._xml_element_end
         parser.CharacterDataHandler = self._xml_char_data
 
-        # used to catch "Exception" and log error "for fetch timeouts" here:
         isfinal = True          # for clarity: keyword arg not allowed
-        parser.Parse(self._content, isfinal)
+        try:
+            parser.Parse(self._content, isfinal)
+        except ExpatError:          # try translating ExpatError
+            top = self._content[:1024].lower()
+            if top.find('<!doctype') or top.find('<html'):
+                raise SitemapXMLParsingUnexpectedTag("html?")
+            raise
 
         if not self._concrete_parser:
             raise InvalidSitemapException(self._url)
@@ -223,7 +229,8 @@ class XMLSitemapParser:
         elif '/sitemap-news/' in namespace_url:
             name = f'news:{name}'
         else:
-            # We don't care about the rest of the namespaces, so just keep the plain element name
+            # We don't care about the rest of the namespaces, so just keep the
+            # plain element name
             pass
 
         return name
@@ -253,7 +260,8 @@ class XMLSitemapParser:
         """
         name = self.__normalize_xml_element_name(name)
         # usp threw an error if self._concrete_parser, which throws
-        # an error on an empty page with a single <sitemapindex/> or <urlset/> element.
+        # an error on an empty page with a single <sitemapindex/> or <urlset/>
+        # element.
         if self._concrete_parser:
             self._concrete_parser.xml_element_end(name=name)
 
@@ -325,7 +333,8 @@ class _IndexXMLSitemapParser(_AbstractXMLSitemapParser):
         super().xml_element_end(name=name)
 
     def sitemap(self) -> BaseSitemap:
-        return Index(url=self._url, type="index", sub_sitemap_urls=self._sub_sitemap_urls, last_fetch_ts=time.time())
+        return Index(url=self._url, type="index",
+                     sub_sitemap_urls=self._sub_sitemap_urls, last_fetch_ts=time.time())
 
 
 class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
@@ -418,7 +427,8 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
 
     def sitemap(self) -> BaseSitemap:
         pages = [page for page in self._pages if page.get("loc")]
-        return Urlset(url=self._url, type="urlset", google_news_tags=self._google_news_tags, pages=pages, last_fetch_ts=time.time())
+        return Urlset(url=self._url, type="urlset", google_news_tags=self._google_news_tags,
+                      pages=pages, last_fetch_ts=time.time())
 
 
 if __name__ == '__main__':
@@ -429,5 +439,8 @@ if __name__ == '__main__':
         print("================", fname)
         with open(fname) as f:
             p = XMLSitemapParser('fname', f.read())
-        s = p.sitemap()
-    json.dump(s, sys.stdout)
+        try:
+            s = p.sitemap()
+            json.dump(s, sys.stdout)
+        except SitemapException as e:
+            print(e)
