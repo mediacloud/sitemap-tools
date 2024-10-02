@@ -11,52 +11,51 @@ from typing import cast
 
 # PyPI
 import requests
-from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT  # TEMP
 from mcmetadata.feeds import normalize_url
+from mcmetadata.requests_arcana import insecure_requests_session
+from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT
 
 # local package:
 from . import parser
-# from requests_arcana import legacy_ssl_session
 
 logger = logging.getLogger(__name__)
 
-_TO = 30                        # default timeout
+_TO = 30  # default timeout
 
 # from usp/tree.py _UNPUBLISHED_SITEMAP_PATHS
 _UNPUBLISHED_SITEMAP_INDEX_PATHS = [
-    'sitemap.xml',
-    'sitemap.xml.gz',
-    'sitemap_index.xml',
-    'sitemap-index.xml',
-    'sitemap_index.xml.gz',
-    'sitemap-index.xml.gz',
-    '.sitemap.xml',
-    'sitemap',
-    'admin/config/search/xmlsitemap',
-    'sitemap/sitemap-index.xml',
-
+    "sitemap.xml",
+    "sitemap.xml.gz",
+    "sitemap_index.xml",
+    "sitemap-index.xml",
+    "sitemap_index.xml.gz",
+    "sitemap-index.xml.gz",
+    ".sitemap.xml",
+    "sitemap",
+    "admin/config/search/xmlsitemap",
+    "sitemap/sitemap-index.xml",
     # not in usp, seen at (AJC, inquirer, elnuevdia, reuters).com
     # (among others)
-    'arc/outboundfeeds/sitemap-index/?outputType=xml',
-    'arc/outboundfeeds/news-sitemap-index/?outputType=xml',
+    "arc/outboundfeeds/sitemap-index/?outputType=xml",
+    "arc/outboundfeeds/news-sitemap-index/?outputType=xml",
 ]
 """Paths which are not exposed in robots.txt but might still contain a sitemap index page."""
 
 _UNPUBLISHED_GNEWS_SITEMAP_PATHS = [
     "arc/outboundfeeds/news-sitemap/?outputType=xml",  # AJC, inquirer, reuters
-    'arc/outboundfeeds/sitemap/latest/?outputType=xml',  # dallasnews
-    'feeds/sitemap_news.xml',  # bloomberg
-    'google-news-sitemap.xml',  # ew.com, people.com
-    'googlenewssitemap.xml',  # axs.com, accesshollywood.com
-    'news-sitemap.xml',  # gannett-cdn.com (many cities), parade
-    'news-sitemap-content.xml',  # scrippsnews.com
-    'news/sitemap_news.xml',  # buzzfeed, NPR
-    'sitemap_news.xml',  # bloomberg, bizjournals, cnbc
-    'sitemap/news.xml',  # cnn
-    'sitemaps/news.xml',  # cnet
-    'sitemaps/new/news.xml.gz',  # NYT
-    'sitemaps/sitemap-google-news.xml',  # huffpost.com
-    'tncms/sitemap/news.xml',  # berkshireeagle, omaha, postandcourier, rutlandherald
+    "arc/outboundfeeds/sitemap/latest/?outputType=xml",  # dallasnews
+    "feeds/sitemap_news.xml",  # bloomberg
+    "google-news-sitemap.xml",  # ew.com, people.com
+    "googlenewssitemap.xml",  # axs.com, accesshollywood.com
+    "news-sitemap.xml",  # gannett-cdn.com (many cities), parade
+    "news-sitemap-content.xml",  # scrippsnews.com
+    "news/sitemap_news.xml",  # buzzfeed, NPR
+    "sitemap_news.xml",  # bloomberg, bizjournals, cnbc
+    "sitemap/news.xml",  # cnn
+    "sitemaps/news.xml",  # cnet
+    "sitemaps/new/news.xml.gz",  # NYT
+    "sitemaps/sitemap-google-news.xml",  # huffpost.com
+    "tncms/sitemap/news.xml",  # berkshireeagle, omaha, postandcourier, rutlandherald
     # 'sitemaps/news',     # thetimes
     # 'feed/google-news-sitemap-feed/sitemap-google-news', # newyorker
 ]
@@ -67,20 +66,11 @@ class PageType:
     """
     bitmasks for different page types
     """
+
     INDEX = 0x1
-    URLSET = 0x2                # urlset w/o google <news:news>
-    GNEWS = 0x4                 # urlset w/ google <news:news>
+    URLSET = 0x2  # urlset w/o google <news:news>
+    GNEWS = 0x4  # urlset w/ google <news:news>
     ALL = 0xFFF
-
-
-def legacy_ssl_session() -> requests.Session:
-    """
-    place holder for function to return requests Session
-    object that talks to older TLS sites
-    """
-    sess = requests.Session()
-    sess.headers["User-Agent"] = MEDIA_CLOUD_USER_AGENT
-    return sess
 
 
 def page_get(url: str, timeout: int = _TO) -> requests.Response:
@@ -89,7 +79,8 @@ def page_get(url: str, timeout: int = _TO) -> requests.Response:
     timeout value used for both connect and read timeouts.
     NOTE! requests Response object is "falsey" if page not retrieved!
     """
-    sess = legacy_ssl_session()
+    logger.debug("page_get: %s", url)
+    sess = insecure_requests_session(MEDIA_CLOUD_USER_AGENT)
     resp = sess.get(url, allow_redirects=True, timeout=(timeout, timeout))
     return resp
 
@@ -97,7 +88,7 @@ def page_get(url: str, timeout: int = _TO) -> requests.Response:
 def sitemap_get(url: str, timeout: int = _TO) -> parser.BaseSitemap | None:
     try:
         resp = page_get(url, timeout=timeout)
-        text = resp.text        # defined as UTF-8
+        text = resp.text  # defined as UTF-8
         logger.info("%s: got %d chars", url, len(text))
         p = parser.XMLSitemapParser(url, text)
         return p.sitemap()
@@ -125,9 +116,9 @@ def check_sitemap_type(url: str, sm: parser.BaseSitemap, accept: int) -> bool:
     return (accept & PageType.URLSET) != 0
 
 
-def sitemap_get_and_check_type(url: str,
-                               accept: int = PageType.ALL,
-                               timeout: int = _TO) -> parser.BaseSitemap | None:
+def sitemap_get_and_check_type(
+    url: str, accept: int = PageType.ALL, timeout: int = _TO
+) -> parser.BaseSitemap | None:
     """
     fetch `url`, parse, and return parsed result
     if page type in `accept` bitmask
@@ -140,8 +131,7 @@ def sitemap_get_and_check_type(url: str,
     return None
 
 
-def robots_sitemaps(url: str, homepage: bool = True,
-                    timeout: int = _TO) -> list[str]:
+def robots_sitemaps(url: str, homepage: bool = True, timeout: int = _TO) -> list[str]:
     """
     fetch robots.txt and return URLs of sitemap pages
     (may include RSS URLs!)
@@ -151,9 +141,9 @@ def robots_sitemaps(url: str, homepage: bool = True,
     """
     robots_txt_url = url
     if homepage:
-        if not robots_txt_url.endswith('/'):
-            robots_txt_url += '/'
-        robots_txt_url += 'robots.txt'
+        if not robots_txt_url.endswith("/"):
+            robots_txt_url += "/"
+        robots_txt_url += "robots.txt"
 
     try:
         resp = page_get(robots_txt_url, timeout=timeout)
@@ -191,19 +181,19 @@ def robots_sitemaps(url: str, homepage: bool = True,
 
     urls = []
     for line in text.splitlines():  # handle \n \r \r\n
-        if ':' not in line:
+        if ":" not in line:
             continue
 
-        tok, rest = line.split(':', 1)
+        tok, rest = line.split(":", 1)
         if tok.lower() == "sitemap":
             url = rest.strip()
             urls.append(url)
     return urls
 
 
-def robots_gnews_sitemaps(url: str,
-                          homepage: bool = True,
-                          timeout: int = _TO) -> list[str]:
+def robots_gnews_sitemaps(
+    url: str, homepage: bool = True, timeout: int = _TO
+) -> list[str]:
     """
     Fetch robots.txt using `url`.
     If `homepage` is True, use as base for robots.txt,
@@ -214,8 +204,7 @@ def robots_gnews_sitemaps(url: str,
     urls = []
     for url in robots_sitemaps(url, homepage, timeout=timeout):
         try:
-            sm = sitemap_get_and_check_type(
-                url, PageType.GNEWS, timeout=timeout)
+            sm = sitemap_get_and_check_type(url, PageType.GNEWS, timeout=timeout)
             if sm:
                 urls.append(url)
         except requests.RequestException as exc:
@@ -223,8 +212,7 @@ def robots_gnews_sitemaps(url: str,
     return urls
 
 
-def unpublished_gnews_sitemaps(
-        homepage_url: str, timeout: int = _TO) -> list[str]:
+def unpublished_gnews_sitemaps(homepage_url: str, timeout: int = _TO) -> list[str]:
     """
     check locations where google news urlsets have been seen
     """
@@ -235,8 +223,7 @@ def unpublished_gnews_sitemaps(
     for p in _UNPUBLISHED_GNEWS_SITEMAP_PATHS:
         url = homepage_url + p
         try:
-            sm = sitemap_get_and_check_type(
-                url, PageType.GNEWS, timeout=timeout)
+            sm = sitemap_get_and_check_type(url, PageType.GNEWS, timeout=timeout)
             if sm:
                 urls.append(url)
         except requests.RequestException as exc:
@@ -256,8 +243,9 @@ def _unpub_path(url: str) -> bool:
     return False
 
 
-def find_gnews_fast(homepage_url: str, max_robots_pages: int = 2,
-                    timeout: int = _TO) -> list[str]:
+def find_gnews_fast(
+    homepage_url: str, max_robots_pages: int = 2, timeout: int = _TO
+) -> list[str]:
     """
     quickly scan a source for urlsets with google news tags
     (without following sitemap index page links)
@@ -274,8 +262,9 @@ def find_gnews_fast(homepage_url: str, max_robots_pages: int = 2,
         # here if too many urls in robots.txt
         # see if a subset have "well known" paths
         robots_urls = [url for url in robots_urls if _unpub_path(url)]
-        logger.info("%s: %d urls from robots.txt after pruning",
-                    homepage_url, len(robots_urls))
+        logger.info(
+            "%s: %d urls from robots.txt after pruning", homepage_url, len(robots_urls)
+        )
         # cbsnews.com has 47 before pruning, 17 after (local news pages)
         # not doing anything further until some aggregious case found
         # (urlsets of historical news listed in robots.txt)
@@ -298,9 +287,14 @@ def _unique_feeds(urls: list[str]) -> list[str]:
     return list({normalize_url(url): url for url in sorted(urls)}.values())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
-    logging.basicConfig(level=logging.INFO)
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    def usage() -> None:
+        sys.stderr.write(f"Usage: {sys.argv[0]} DOMAIN\n")
+        sys.exit(1)
 
     # add static tests?
     def test(urls: list[str], expect: list[str]) -> None:
@@ -311,10 +305,16 @@ if __name__ == '__main__':
     test(["http://www.foo.bar", "http://foo.bar"], ["http://www.foo.bar"])
     test(["http://foo.bar", "http://www.foo.bar"], ["http://www.foo.bar"])
 
-    if (len(sys.argv) != 2 or '.' not in (domain := sys.argv[1]) or
-            domain.startswith("www.") or domain.startswith("http:") or domain.startswith("https:")):
-        sys.stderr.write(f"Usage: {sys.argv[0]} DOMAIN\n")
-        sys.exit(1)
+    if len(sys.argv) != 2:
+        usage()
+    domain = sys.argv[1]
+    if (
+        "." not in domain
+        or domain.startswith("www.")
+        or domain.startswith("http:")
+        or domain.startswith("https:")
+    ):
+        usage()
 
     homepage = "https://www." + domain
 

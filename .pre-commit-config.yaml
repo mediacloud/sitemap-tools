@@ -1,0 +1,36 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: http://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-toml
+  - repo: http://github.com/ambv/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3.10
+  - repo: http://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.1
+    hooks:
+      - id: mypy
+        # https://github.com/pre-commit/mirrors-mypy/README.md says
+        # "using the --install-types is problematic." (mutates cache)
+        entry: ./.pre-commit-mypy.sh
+        additional_dependencies: ["pip>=22.0"]
+        # without implicit --ignore-missing-imports:
+        args: [--strict]
+  - repo: http://github.com/pycqa/flake8
+    rev: 7.1.0
+    hooks:
+      - id: flake8
+  - repo: http://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (python)

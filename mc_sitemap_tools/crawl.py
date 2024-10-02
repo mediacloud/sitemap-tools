@@ -4,15 +4,13 @@ tools to perform a full crawl of a site
 
 import logging
 import time
-from enum import Enum
-from typing import Callable, NamedTuple, cast
+from typing import Callable, cast
 
 # PyPI
 from requests.exceptions import RequestException
 
 # local package
-from . import discover
-from . import parser
+from . import discover, parser
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +95,7 @@ class Crawler:
             except FETCH_EXCEPTIONS:
                 sitemap = None
 
-            if sitemap:         # fetched and parsed ok
+            if sitemap:  # fetched and parsed ok
                 smt = sitemap["type"]
                 if smt == "index":
                     logger.info("%s: index", url)
@@ -114,8 +112,7 @@ class Crawler:
         return len(self.to_visit) > 0
 
 
-def full_crawl_gnews_urls(
-        home_page: str, sleep_time: float = 1.0) -> list[str]:
+def full_crawl_gnews_urls(home_page: str, sleep_time: float = 1.0) -> list[str]:
     """
     Returns list of sitemap urlsets with google_news_tags.
     """

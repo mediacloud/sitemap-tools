@@ -9,6 +9,15 @@
 ## Version 1
 
 ### 1.0
+	* 1.1.1:
+		+ no API changes
+		+ use mcmetadata.requests_arcana.insecure_requests_session
+		+ add Makefile to build dev environment, run pre-commit all
+		+ add .flake8 (from story-indexer), increased max-line-length
+		+ add .pre-commit-config.yaml from story-indexer
+		+ new .pre-commit-mypy.sh
+		+ pre-commit cleanup/reformatting (removed unused imports)
+
 	* 1.1.0:
 		+ parser.py:: give ...UnexpectedTag("html?" for suspected html
 		+ docstrings
@@ -40,4 +49,3 @@
 	* 0.0.3: added py.typed
 	* 0.0.2: fix project name in pyproject.toml
 	* 0.0.1: initial checkin
-
