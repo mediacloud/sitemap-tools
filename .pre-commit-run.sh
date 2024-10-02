@@ -11,4 +11,5 @@ if ! cmp -s pyproject.toml $TMP; then
     cp -p pyproject.toml $TMP
 fi
 #pip list >> /tmp/xxx.log
-mypy "$@"
+# NOTE! first arg must be command to invoke!
+"$@"

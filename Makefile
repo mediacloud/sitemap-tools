@@ -18,4 +18,4 @@ lint:	$(VENVDONE)
 
 clean:
 	-$(VENVBIN)/pre-commit clean
-	rm -rf $(VENVDIR) .pre-commit-mypy.sh.*
+	rm -rf $(VENVDIR) build sitemap_tools.egg-info .pre-commit-run.sh.*
