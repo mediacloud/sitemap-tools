@@ -36,7 +36,7 @@ dev = [
     "pre-commit"
 ]
 # dependencies for mypy under pre-commit private venv
-# run from .pre-commit-mypy.sh (run from .pre-commit-config.yaml)
+# used by .pre-commit-run.sh (run from .pre-commit-config.yaml)
 mypy = [
     "types-requests",
     "types-urllib3"
