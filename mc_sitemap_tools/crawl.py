@@ -4,7 +4,7 @@ tools to perform a full crawl of a site
 
 import logging
 import time
-from typing import Callable, cast
+from typing import Callable, NamedTuple, cast
 
 # PyPI
 from requests.exceptions import RequestException
@@ -115,6 +115,10 @@ class Crawler:
 def full_crawl_gnews_urls(home_page: str, sleep_time: float = 1.0) -> list[str]:
     """
     Returns list of sitemap urlsets with google_news_tags.
+
+    If you're spending the time to do a full crawl, you might consider
+    full_crawl_urlsets, which returns all urlsets along with
+    gnewsiness and number of entries!
     """
     results = []
 
@@ -126,7 +130,47 @@ def full_crawl_gnews_urls(home_page: str, sleep_time: float = 1.0) -> list[str]:
 
     crawler = Crawler(home_page, saver)
     while crawler.visit_one():
-        time.sleep(1)
+        time.sleep(sleep_time)
+
+    return results
+
+
+class UrlsetInfo(NamedTuple):
+    url: str
+    size: int
+    gnews: bool
+    entries: int
+    lastlastmod: str | None
+
+
+def full_crawl_urlsets(home_page: str, sleep_time: float = 1.0) -> list[UrlsetInfo]:
+    """
+    Returns list of sitemap urlset summaries.
+    """
+    results = []
+
+    def saver(urlset: parser.Urlset) -> None:
+
+        url = urlset["url"]
+        lastlastmod = ""
+        for pg in urlset["pages"]:
+            lm = pg.get("lastmod")
+            if lm and lm > lastlastmod:
+                lastlastmod = lm
+
+        ui = UrlsetInfo(
+            url,
+            urlset["size"],
+            urlset["google_news_tags"],
+            len(urlset["pages"]),
+            lastlastmod or None,
+        )
+        logger.info("*** SAVING %s", ui)
+        results.append(ui)
+
+    crawler = Crawler(home_page, saver)
+    while crawler.visit_one():
+        time.sleep(sleep_time)
 
     return results
 
@@ -136,5 +180,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    for url in full_crawl_gnews_urls(sys.argv[1], 0.1):
+    for url in full_crawl_urlsets(sys.argv[1], 0.1):
         print(url)

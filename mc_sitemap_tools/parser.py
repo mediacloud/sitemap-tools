@@ -144,6 +144,7 @@ class BaseSitemap(TypedDict):
     url: str
     type: str  # urlset or index
     last_fetch_ts: float
+    size: int  # size in characters
 
 
 class Urlset(BaseSitemap):
@@ -199,7 +200,7 @@ class XMLSitemapParser:
         if not self._concrete_parser:
             raise InvalidSitemapException(self._url)
 
-        return self._concrete_parser.sitemap()
+        return self._concrete_parser._sitemap(len(self._content))
 
     @classmethod
     def __normalize_xml_element_name(cls, name: str) -> str:
@@ -251,9 +252,7 @@ class XMLSitemapParser:
         else:
             # Root element -- initialize concrete parser
             if name == "sitemap:urlset":
-                self._concrete_parser = UrlsetXMLSitemapParser(
-                    url=self._url,
-                )
+                self._concrete_parser = UrlsetXMLSitemapParser(url=self._url)
             elif name == "sitemap:sitemapindex":
                 self._concrete_parser = _IndexXMLSitemapParser(url=self._url)
             else:
@@ -312,7 +311,7 @@ class _AbstractXMLSitemapParser:
         self._last_char_data += data
         self._last_char_data_set = True
 
-    def sitemap(self) -> BaseSitemap:
+    def _sitemap(self, size: int) -> BaseSitemap:
         raise NotImplementedError("Abstract method.")
 
 
@@ -340,12 +339,13 @@ class _IndexXMLSitemapParser(_AbstractXMLSitemapParser):
 
         super().xml_element_end(name=name)
 
-    def sitemap(self) -> BaseSitemap:
+    def _sitemap(self, size: int) -> BaseSitemap:
         return Index(
             url=self._url,
             type="index",
             sub_sitemap_urls=self._sub_sitemap_urls,
             last_fetch_ts=time.time(),
+            size=size,
         )
 
 
@@ -439,7 +439,7 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
 
         super().xml_element_end(name=name)
 
-    def sitemap(self) -> BaseSitemap:
+    def _sitemap(self, size: int) -> BaseSitemap:
         pages = [page for page in self._pages if page.get("loc")]
         return Urlset(
             url=self._url,
@@ -447,6 +447,7 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
             google_news_tags=self._google_news_tags,
             pages=pages,
             last_fetch_ts=time.time(),
+            size=size,
         )
 
 
