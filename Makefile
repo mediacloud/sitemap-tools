@@ -18,4 +18,5 @@ lint:	$(VENVDONE)
 
 clean:
 	-$(VENVBIN)/pre-commit clean
-	rm -rf $(VENVDIR) build sitemap_tools.egg-info .pre-commit-run.sh.*
+	rm -rf $(VENVDIR) build sitemap_tools.egg-info .pre-commit-run.sh.log \
+		mc_sitemap_tools/__pycache__ .mypy_cache
