@@ -6,6 +6,18 @@
 * adding a new function requires a new minor version
 * removing a function or adding a new mandatory arg requires a new major version
 
+## Version 2
+
+### 2.0
+	* 2.0.0:
+		+ NOTE! API change without legacy stubs!
+		+ discover.py:
+			Use metadata-lib 1.1.0 insecure_requests_session
+			for consistent page fetching across components!!!
+			Wrap in NewsDiscoverer class (takes user_agent).
+			(web-search pulls in via explicit git tag)
+		+ crawl.py: Crawler now requires user_agent
+
 ## Version 1
 
 ### 1.0

@@ -7,6 +7,7 @@ import time
 from typing import Callable, NamedTuple, cast
 
 # PyPI
+from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT
 from requests.exceptions import RequestException
 
 # local package
@@ -34,11 +35,14 @@ class Crawler:
     visits pages breadth first.
     """
 
-    def __init__(self, home_page: str, saver: Saver):
+    def __init__(self, home_page: str, saver: Saver, user_agent: str):
         if not home_page.endswith("/"):
             home_page += "/"
         self.home_page = home_page
         self.saver = saver
+        self.user_agent = user_agent
+
+        self.news_discoverer = discover.NewsDiscoverer(user_agent)
         self.to_visit: list[str] = []
         self.seen: set[str] = set()
         self.state_processor = None
@@ -77,7 +81,9 @@ class Crawler:
             # and "well known" paths
             logger.info("getting robots.txt")
             try:
-                self._add_list(discover.robots_sitemaps(self.home_page), False)
+                self._add_list(
+                    self.news_discoverer.robots_sitemaps(self.home_page), False
+                )
             except FETCH_EXCEPTIONS:
                 pass
             self._add_list(discover._UNPUBLISHED_SITEMAP_INDEX_PATHS, True)
@@ -91,7 +97,7 @@ class Crawler:
             logger.info("getting %s", url)
             # fetch and parse page:
             try:
-                sitemap = discover.sitemap_get(url)
+                sitemap = self.news_discoverer.sitemap_get(url)
             except FETCH_EXCEPTIONS:
                 sitemap = None
 
@@ -128,8 +134,9 @@ def full_crawl_gnews_urls(home_page: str, sleep_time: float = 1.0) -> list[str]:
             logger.info("*** SAVING %s ***", url)
             results.append(url)
 
-    crawler = Crawler(home_page, saver)
+    crawler = Crawler(home_page, saver, MEDIA_CLOUD_USER_AGENT)
     while crawler.visit_one():
+        logger.info("sleeping %.3f", sleep_time)
         time.sleep(sleep_time)
 
     return results
@@ -145,7 +152,7 @@ class UrlsetInfo(NamedTuple):
 
 def full_crawl_urlsets(home_page: str, sleep_time: float = 1.0) -> list[UrlsetInfo]:
     """
-    Returns list of sitemap urlset summaries.
+    Returns list of sitemap urlset summaries using Crawler class
     """
     results = []
 
@@ -168,7 +175,7 @@ def full_crawl_urlsets(home_page: str, sleep_time: float = 1.0) -> list[UrlsetIn
         logger.info("*** SAVING %s", ui)
         results.append(ui)
 
-    crawler = Crawler(home_page, saver)
+    crawler = Crawler(home_page, saver, MEDIA_CLOUD_USER_AGENT)
     while crawler.visit_one():
         time.sleep(sleep_time)
 
