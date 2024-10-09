@@ -9,6 +9,4 @@ Goals:
 
 ## TO CREATE DEVELOPMENT ENVIRONMENT
 
-run `make` (installs pre-commit hook to run formatting and mypy checks)
-
-to run pre-commit checks at any time: `make lint`
+`make` installs development environment, pre-commit hook, runs pre-commit
