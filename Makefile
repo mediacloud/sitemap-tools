@@ -5,7 +5,7 @@ VENVDIR=venv
 VENVBIN=$(VENVDIR)/bin
 VENVDONE=.git/hooks/pre-commit
 
-$(VENVDONE): $(VENVDIR) Makefile pyproject.toml .pre-commit-config.yaml
+$(VENVDONE): $(VENVDIR) Makefile pyproject.toml
 	$(VENVBIN)/pip install '.[dev]'
 	$(VENVBIN)/pre-commit install
 

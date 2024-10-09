@@ -19,9 +19,8 @@ repos:
   - repo: http://github.com/pre-commit/mirrors-mypy
     rev: v1.11.2
     hooks:
-      # https://github.com/pre-commit/mirrors-mypy/README.md says
-      # "using the --install-types is problematic." (mutates cache)
-      # run mypy via wrapper to make sure "mypy" dependencies installed:
+      # run mypy via wrapper to make sure "pre-commit" optional
+      # dependencies in pyproject.toml installed (to keep DRY).
       - id: mypy
         entry: ./.pre-commit-run.sh mypy
         additional_dependencies: ["pip>=22.0"]
