@@ -3,19 +3,28 @@
 
 VENVDIR=venv
 VENVBIN=$(VENVDIR)/bin
-VENVDONE=.git/hooks/pre-commit
+VENVDONE=$(VENVDIR)/.done
 
-$(VENVDONE): $(VENVDIR) Makefile pyproject.toml
-	$(VENVBIN)/pip install '.[dev]'
-	$(VENVBIN)/pre-commit install
-
-$(VENVDIR):
-	python3 -mvenv $(VENVDIR)
-
-# run pre-commit on all files
+## run pre-commit checks on all files
 lint:	$(VENVDONE)
 	$(VENVBIN)/pre-commit run --all-files
 
+# create venv with project dependencies
+# --editable skips installing project sources in venv
+# pre-commit is in dev optional-requirements
+$(VENVDONE): $(VENVDIR) Makefile pyproject.toml
+	$(VENVBIN)/python3 -m pip install --editable '.[dev]'
+	$(VENVBIN)/pre-commit install
+	touch $(VENVDONE)
+
+$(VENVDIR):
+	python3 -m venv $(VENVDIR)
+
+## update .pre-commit-config.yaml
+update:	$(VENVDONE)
+	$(VENVBIN)/pre-commit autoupdate
+
+## clean up development environment
 clean:
 	-$(VENVBIN)/pre-commit clean
 	rm -rf $(VENVDIR) build sitemap_tools.egg-info .pre-commit-run.sh.log \

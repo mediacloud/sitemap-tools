@@ -37,12 +37,8 @@ if cmp -s pyproject.toml $TMP; then
     echo no change to pyproject.toml >> $LOG
 else
     echo installing pre-commit optional dependencies >> $LOG
-    # NOTE! This installs THIS package in the pre-commit venv.
-    # We really only want the packages in the "pre-commit" list from
-    # project.optional-dependencies in pyproject.toml. This has been
-    # the subject of MUCH discussion and this issue is currently
-    # (2024-10-09) open: https://github.com/pypa/pip/issues/11440
-    if pip install '.[pre-commit]'; then
+    # --editable skips installing project package
+    if python3 -m pip install --editable '.[pre-commit]'; then
 	cp -p pyproject.toml $TMP
 	echo done >> $LOG
     else
