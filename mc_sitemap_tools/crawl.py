@@ -1,5 +1,5 @@
 """
-tools to perform a full crawl of a site
+tools for performing full crawls of a site
 """
 
 import logging
@@ -7,6 +7,7 @@ import time
 from typing import Callable, NamedTuple, cast
 
 # PyPI
+from mcmetadata.feeds import normalize_url
 from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT
 from requests.exceptions import RequestException
 
@@ -16,14 +17,6 @@ from . import discover, parser
 logger = logging.getLogger(__name__)
 
 
-def _canurl(url: str) -> str:
-    """
-    replace with URL canonicalization?
-    """
-    return url
-
-
-FETCH_EXCEPTIONS = (RequestException,)
 Saver = Callable[[parser.Urlset], None]
 
 
@@ -34,6 +27,8 @@ class Crawler:
 
     visits pages breadth first.
     """
+
+    FETCH_EXCEPTIONS = (RequestException,)
 
     def __init__(self, home_page: str, saver: Saver, user_agent: str):
         if not home_page.endswith("/"):
@@ -56,7 +51,7 @@ class Crawler:
         """
         if home_page:
             url = home_page + url
-        canurl = _canurl(url)
+        canurl = normalize_url(url)
         if canurl not in self.seen:
             logger.info("adding %s", url)
             self.seen.add(canurl)
@@ -84,7 +79,7 @@ class Crawler:
                 self._add_list(
                     self.news_discoverer.robots_sitemaps(self.home_page), False
                 )
-            except FETCH_EXCEPTIONS:
+            except self.FETCH_EXCEPTIONS:
                 pass
             self._add_list(discover._UNPUBLISHED_SITEMAP_INDEX_PATHS, True)
             self._add_list(discover._UNPUBLISHED_GNEWS_SITEMAP_PATHS, True)
@@ -98,7 +93,7 @@ class Crawler:
             # fetch and parse page:
             try:
                 sitemap = self.news_discoverer.sitemap_get(url)
-            except FETCH_EXCEPTIONS:
+            except self.FETCH_EXCEPTIONS:
                 sitemap = None
 
             if sitemap:  # fetched and parsed ok
@@ -144,7 +139,7 @@ def full_crawl_gnews_urls(home_page: str, sleep_time: float = 1.0) -> list[str]:
 
 class UrlsetInfo(NamedTuple):
     url: str
-    size: int
+    size: int  # page size in characters
     gnews: bool
     entries: int
     lastlastmod: str | None
@@ -166,11 +161,11 @@ def full_crawl_urlsets(home_page: str, sleep_time: float = 1.0) -> list[UrlsetIn
                 lastlastmod = lm
 
         ui = UrlsetInfo(
-            url,
-            urlset["size"],
-            urlset["google_news_tags"],
-            len(urlset["pages"]),
-            lastlastmod or None,
+            url=url,
+            size=urlset["size"],
+            gnews=urlset["google_news_tags"],
+            entries=len(urlset["pages"]),
+            lastlastmod=lastlastmod or None,
         )
         logger.info("*** SAVING %s", ui)
         results.append(ui)
@@ -187,5 +182,12 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    for url in full_crawl_urlsets(sys.argv[1], 0.1):
+    if len(sys.argv) != 2:
+        # http://www.ap.com has a small map, www.npr.org and www.nytimes.com are large!
+        sys.stderr.write("Usage: venv/bin/python -m mc_sitemap_tools.crawl URL_BASE\n")
+        sys.exit(1)
+
+    urls = full_crawl_urlsets(sys.argv[1], 0.1)
+    print("================")
+    for url in urls:
         print(url)
