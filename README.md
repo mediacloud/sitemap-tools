@@ -10,3 +10,5 @@ Goals:
 ## TO CREATE DEVELOPMENT ENVIRONMENT
 
 `make` installs development environment, pre-commit hook, runs pre-commit
+
+`make clean` removes development and pre-commit environments
