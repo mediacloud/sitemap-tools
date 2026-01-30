@@ -279,10 +279,17 @@ class GNewsCrawler(GNewsCrawlerFull):
         "market-data",  # WSJ
         "recipe",  # NYT
         "region"  # NYT
+        "roster",  # NYT
+        "schedule",  # NYT
+        "section",  # NYT
         "sports",  # NYT
+        "tags",  # NYT
+        "taxonomy",  # NYT
         "teams",  # NYT
+        "vertical",  # NYT
         "video",  # NYT
         "weather",  # NYT
+        "wirecutter",  # NYT
     ]
     SECTION_PREF = DISCARD / 2
 
@@ -328,31 +335,51 @@ class GNewsCrawler(GNewsCrawlerFull):
 
 
 if __name__ == "__main__":
-    import sys
+    import argparse
 
     from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT
 
-    logging.basicConfig(level=logging.INFO)
+    classes = {"quick": GNewsCrawler, "gnews-full": GNewsCrawler, "full": BaseCrawler}
+
+    ap = argparse.ArgumentParser("sitemap crawl test program")
+    ap.add_argument("--max-depth", type=int, default=1, help="maximum traversal depth")
+    ap.add_argument(
+        "--max-results",
+        type=int,
+        default=3,
+        help="maximum number of results to iterate for",
+    )
+    ap.add_argument("--quiet", action="store_true", help="disable logger output")
+    ap.add_argument(
+        "--sleep", type=float, default=0.1, help="sleep time between page visits"
+    )
+    ap.add_argument(
+        "--type",
+        choices=classes.keys(),
+        default=next(iter(classes.keys())),  # first key
+        help="type of crawl",
+    )
+    ap.add_argument("home_page", help="base url (home page) for crawl")
+    args = ap.parse_args()
+
+    if not args.quiet:
+        logging.basicConfig(level=logging.INFO)
 
     # http://www.ap.com has a small map, www.npr.org and www.nytimes.com are large!
     # record so far is univision.com w/ three news sitemaps
 
-    if len(sys.argv) != 2:
-        sys.stderr.write("Usage: venv/bin/python -m mc_sitemap_tools.crawl URL_BASE\n")
-        sys.exit(1)
-
-    cls = GNewsCrawler  # or GNewsCrawlerFull
+    cls = classes[args.type]
 
     # The first site examined (csmonitor.com) turned out to have a google
     # news sitemap URL in a sitemap file referenced by robots.txt.
     crawler = cls(
-        home_page=sys.argv[1],
+        home_page=args.home_page,
         user_agent=MEDIA_CLOUD_USER_AGENT,
-        max_depth=1,
-        max_results=3,
+        max_depth=args.max_depth,
+        max_results=args.max_results,
     )
 
-    sleep_time = 0.1
+    sleep_time = args.sleep
     while crawler.visit_one() == VisitResult.MORE:
         time.sleep(sleep_time)
     for res in crawler.results:
