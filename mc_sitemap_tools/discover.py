@@ -3,7 +3,7 @@ tools for discovering *news* sitemaps
 (urlsets with google news tags)
 from a home page URL
 
-when invoked from command line, takes a home page URL
+when invoked from command line, takes domain name
 """
 
 import logging
