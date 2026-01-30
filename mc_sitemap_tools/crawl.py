@@ -20,7 +20,6 @@ remove the URL from consideration (prune the tree).
 import heapq
 import logging
 import re
-import time
 from enum import Enum
 from typing import NamedTuple, cast
 from urllib.parse import urlsplit
@@ -98,12 +97,12 @@ class BaseCrawler:
             self.seen.add(nurl)
             if pref is None:
                 pref = self.page_pref(url)
-                if pref >= self.DISCARD_PREF:
-                    logger.info("skipping %s %d %g %s", url, depth, pref, origin)
-                else:
-                    logger.info("adding %s %g %d %s", url, pref, depth, origin)
-                    page = PageTuple(url=url, depth=depth, pref=pref, origin=origin)
-                    heapq.heappush(self.to_visit, page)
+            if pref >= self.DISCARD_PREF:
+                logger.info("skipping %s %d %g %s", url, depth, pref, origin)
+            else:
+                logger.info("adding %s %g %d %s", url, pref, depth, origin)
+                page = PageTuple(url=url, depth=depth, pref=pref, origin=origin)
+                heapq.heappush(self.to_visit, page)
 
     def _add_list(
         self,
@@ -336,6 +335,7 @@ class GNewsCrawler(GNewsCrawlerFull):
 
 if __name__ == "__main__":
     import argparse
+    import time
 
     from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT
 
@@ -380,7 +380,9 @@ if __name__ == "__main__":
     )
 
     sleep_time = args.sleep
+    t0 = time.monotonic()
     while crawler.visit_one() == VisitResult.MORE:
         time.sleep(sleep_time)
     for res in crawler.results:
         print(res["url"])
+    print(crawler.pages_visited, "pages visited in", time.monotonic() - t0, "seconds")
