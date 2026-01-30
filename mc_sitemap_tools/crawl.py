@@ -243,59 +243,74 @@ class GNewsCrawler(GNewsCrawlerFull):
     # applied to case-flattened {path}?{query}
     # matching either causes page_pref to return DISCARD.
 
-    # https://www.nytimes.com/sitemaps/new/cooking-1982-09.xml.gz
+    # https://googlecrawl.npr.org/standard/sitemap_standard_01-Jan-90.xml
     # https://nypost.com/sitemap-1865.xml
     # https://nypost.com/sitemap-1999.xml?mm=12&dd=31
-    YEAR_RE = re.compile(r"(^|\D)(1[89]|20)\d\d($|\D|[01]\d)|year=")
-
-    # npr.org has dd-Mon-yy, bershireeagle has date=YYYY-MM-DD
-    DATE_RE = re.compile(r"\d\d-[a-z][a-z][a-z]-\d\d|date=|[12]\d\d\d-[01]\d-[0-3]\d")
+    # https://www.berkshireeagle.com/tncms/sitemap/editorial.xml?year=1970
+    # https://www.foxbusiness.com/sitemap.xml?type=videos&page=54
+    # https://www.investors.com/post-sitemap125.xml
+    # https://www.nytimes.com/sitemaps/new/cooking-1982-09.xml.gz
+    # https://www.nytimes.com/sitemaps/new/sitemap-1851-09.xml.gz
+    SKIP_RE = re.compile(
+        r"(^|\D)(1[89]|20)\d\d($|\D|[01]\d)|"
+        "year=|"
+        r"\d\d-[a-z][a-z][a-z]-\d\d|"
+        "date=|"
+        r"page=\d\d|"
+        r"[12]\d\d\d-[01]\d-[0-3]\d|"
+        r"sitemap\d\d"
+    )
 
     # weights for words in URL path (lower is better)
     # for larger values of max_results, weighting probably
     # matters less (more sitemaps will be traversed looking
     # for more matches)
     PREF_TOKENS: list[tuple[str, float]] = [
-        ("google-news", -2),
-        ("googlenews", -2),
-        ("news", -1),
-        ("xml", -0.5),
+        ("google-news", -10),
+        ("googlenews", -10),
+        ("news", -5),
         (".html", DISCARD),
     ]
 
     # things in URL path to weight against
     # (looking for single, whole site index)
+    SECTION_PREF = DISCARD / 2  # any two will kill (unless hits from above)
     SECTIONS = [
         "athlet",  # NYT
-        "authors",  # NYT
+        "author",  # NYT, investors.com
         "best-sell",  # NYT
         "books",
         "cities",  # NYT
-        "city",  # NYT
+        "category",  # investors.com
+        "companies",  # bloomberg
+        "company",  # bloomberg
         "cooking",  # NYT
         "games",  # NYT
         "local",
         "market-data",  # WSJ
+        "people",  # bloomberg
+        "profile",  # bloomberg
         "recipe",  # NYT
         "region"  # NYT
+        "review"  # NYT
         "roster",  # NYT
         "schedule",  # NYT
         "section",  # NYT
         "sports",  # NYT
+        "stats",  # NYT
         "tags",  # NYT
         "taxonomy",  # NYT
         "teams",  # NYT
         "vertical",  # NYT
-        "video",  # NYT
+        "video",  # NYT, NPR
         "weather",  # NYT
         "wirecutter",  # NYT
     ]
-    SECTION_PREF = DISCARD / 2
 
     # Preference for canned paths; Since they're not "organic" (seen
     # in a sitemap from the site), they're slightly preferable to a
-    # URL without ANY matching tokens, but less preferable to a URL
-    # WITH matching tokens:
+    # URL without ANY matching tokens, but less preferable than
+    # an organic URL WITH matching tokens:
     UNPUBLISHED_GNEWS_SITEMAP_PREF = -0.25
 
     def page_pref(self, url: str) -> float:
@@ -316,8 +331,7 @@ class GNewsCrawler(GNewsCrawlerFull):
         if u.query:
             path += f"?{u.query.lower()}"
 
-        # don't want full year, per month or per-day files!
-        if self.YEAR_RE.search(path) or self.DATE_RE.search(path):
+        if self.SKIP_RE.search(path):
             return self.DISCARD_PREF
 
         pref = 0.0
