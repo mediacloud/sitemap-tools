@@ -252,13 +252,17 @@ class GNewsCrawler(GNewsCrawlerFull):
     # https://www.nytimes.com/sitemaps/new/cooking-1982-09.xml.gz
     # https://www.nytimes.com/sitemaps/new/sitemap-1851-09.xml.gz
     SKIP_RE = re.compile(
-        r"(^|\D)(1[89]|20)\d\d($|\D|[01]\d)|"
-        "year=|"
-        r"\d\d-[a-z][a-z][a-z]-\d\d|"
-        "date=|"
-        r"page=\d\d|"
-        r"[12]\d\d\d-[01]\d-[0-3]\d|"
-        r"sitemap\d\d"
+        "|".join(
+            [
+                "date=",
+                "year=" r"(^|\D)(1[89]|20)\d\d($|\D|[01]\d)",
+                r"[12]\d\d\d-[01]\d-[0-3]\d",
+                r"\d\d-[a-z][a-z][a-z]-\d\d" r"page=\d\d",
+                r"post-\d\d",
+                r"sitemap\d\d",
+                r"tag-\d\d",
+            ]
+        )
     )
 
     # weights for words in URL path (lower is better)
@@ -289,7 +293,7 @@ class GNewsCrawler(GNewsCrawlerFull):
         "local",
         "market-data",  # WSJ
         "people",  # bloomberg
-        "profile",  # bloomberg
+        "profile",  # bloomberg, dailyfreepress.com
         "recipe",  # NYT
         "region"  # NYT
         "review"  # NYT
@@ -297,9 +301,11 @@ class GNewsCrawler(GNewsCrawlerFull):
         "schedule",  # NYT
         "section",  # NYT
         "sports",  # NYT
+        "staff",  # dailyfreepress.com
         "stats",  # NYT
         "tags",  # NYT
         "taxonomy",  # NYT
+        "taxonomies",  # dailyfreepress.com
         "teams",  # NYT
         "vertical",  # NYT
         "video",  # NYT, NPR
