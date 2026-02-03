@@ -268,6 +268,7 @@ class GNewsCrawler(GNewsCrawlerFull):
                 r"sitemapall\d",
                 r"sitemapvideoall\d",
                 r"tag-\d\d",
+                r"\d\d\d\d-\d\d\d\d",
             ]
         )
     )
