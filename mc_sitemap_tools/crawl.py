@@ -248,22 +248,28 @@ class GNewsCrawler(GNewsCrawlerFull):
     # https://googlecrawl.npr.org/standard/sitemap_standard_01-Jan-90.xml
     # https://nypost.com/sitemap-1865.xml
     # https://nypost.com/sitemap-1999.xml?mm=12&dd=31
+    # https://nypost.com/sitemap-nypost-post_tag.xml?sitemap=57
     # https://www.berkshireeagle.com/tncms/sitemap/editorial.xml?year=1970
+    # https://www.chron.com/sitemap/4135000-4140000.xml
     # https://www.foxbusiness.com/sitemap.xml?type=videos&page=54
     # https://www.investors.com/post-sitemap125.xml
+    # https://www.mercurynews.com/sitemap.xml?yyyy=0202&mm=03&dd=03
     # https://www.nytimes.com/sitemaps/new/cooking-1982-09.xml.gz
     # https://www.nytimes.com/sitemaps/new/sitemap-1851-09.xml.gz
+    # https://www.sfgate.com/sitemap/65000-70000.xml
     SKIP_RE = re.compile(
         "|".join(
             [
                 "date=",
                 "year=",
+                "yyyy=",
                 r"(^|\D)(1[89]|2[012])\d\d($|\D|[01]\d)",
                 r"[12]\d\d\d-[01]\d-[0-3]\d",
                 r"\d\d-[a-z][a-z][a-z]-\d\d",
                 r"page=\d\d",
                 r"post-\d\d",
                 r"quotesitemap\d",
+                r"sitemap=\d\d",
                 r"sitemap\d\d",
                 r"sitemapall\d",
                 r"sitemapvideoall\d",
