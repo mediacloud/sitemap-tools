@@ -6,6 +6,16 @@
 * adding a new function requires a new minor version
 * removing a function or adding a new mandatory arg requires a new major version
 
+## Version 3
+
+### 3.0
+	* 3.0.0:
+		+ Changed removed crawler.Crawler (replaced by {Base,GNews}Crawler)
+	* 3.0.1:
+		+ Fixes
+	* 3.0.2:
+		+ Fix crawler main, update this file!
+
 ## Version 2
 
 ### 2.0

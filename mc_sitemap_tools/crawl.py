@@ -378,7 +378,11 @@ if __name__ == "__main__":
 
     from mcmetadata.webpages import MEDIA_CLOUD_USER_AGENT
 
-    classes = {"quick": GNewsCrawler, "gnews-full": GNewsCrawler, "full": BaseCrawler}
+    classes = {
+        "quick": GNewsCrawler,
+        "gnews-full": GNewsCrawlerFull,
+        "full": BaseCrawler,
+    }
 
     ap = argparse.ArgumentParser("sitemap crawl test program")
     ap.add_argument("--max-depth", type=int, default=1, help="maximum traversal depth")
