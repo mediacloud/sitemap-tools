@@ -132,7 +132,7 @@ class BaseCrawler:
                 origin="unpub-index-paths",
             )
 
-    def visit_one(self) -> VisitResult:
+    def visit_one(self, timeout: int = discover._TO) -> VisitResult:
         """
         visit one page, returns True while more work to be done
         to allow running as a background activity
@@ -143,7 +143,9 @@ class BaseCrawler:
             # and "well known" paths
             logger.info("===== getting robots.txt")
             try:
-                self.robots_urls = self.news_discoverer.robots_sitemaps(self.home_page)
+                self.robots_urls = self.news_discoverer.robots_sitemaps(
+                    self.home_page, timeout=timeout
+                )
                 # XXX get/honor Crawl-Delay??
                 # sitemap lines in robots.txt _should_ be complete urls!!
                 self._add_list(
@@ -167,8 +169,8 @@ class BaseCrawler:
             logger.info("getting %s %g %d %s", url, page.pref, page.depth, page.origin)
             # fetch and parse page:
             try:
-                sitemap = self.news_discoverer.sitemap_get(url)
-            except self.FETCH_EXCEPTIONS:
+                sitemap = self.news_discoverer.sitemap_get(url, timeout)
+            except self.FETCH_EXCEPTIONS:  #
                 sitemap = None
 
             if sitemap:  # fetched and parsed ok
@@ -255,11 +257,16 @@ class GNewsCrawler(GNewsCrawlerFull):
         "|".join(
             [
                 "date=",
-                "year=" r"(^|\D)(1[89]|20)\d\d($|\D|[01]\d)",
+                "year=",
+                r"(^|\D)(1[89]|2[012])\d\d($|\D|[01]\d)",
                 r"[12]\d\d\d-[01]\d-[0-3]\d",
-                r"\d\d-[a-z][a-z][a-z]-\d\d" r"page=\d\d",
+                r"\d\d-[a-z][a-z][a-z]-\d\d",
+                r"page=\d\d",
                 r"post-\d\d",
+                r"quotesitemap\d",
                 r"sitemap\d\d",
+                r"sitemapall\d",
+                r"sitemapvideoall\d",
                 r"tag-\d\d",
             ]
         )
@@ -280,26 +287,30 @@ class GNewsCrawler(GNewsCrawlerFull):
     # (looking for single, whole site index)
     SECTION_PREF = DISCARD / 2  # any two will kill (unless hits from above)
     SECTIONS = [
-        "athlet",  # NYT
+        "athletic",  # NYT
         "author",  # NYT, investors.com
-        "best-sell",  # NYT
+        "best",  # NYT
         "books",
         "cities",  # NYT
         "category",  # investors.com
+        "collects",  # NYT
         "companies",  # bloomberg
         "company",  # bloomberg
         "cooking",  # NYT
+        "event",  # axs.com
         "games",  # NYT
         "local",
         "market-data",  # WSJ
         "people",  # bloomberg
+        "performer",  # axs.com
         "profile",  # bloomberg, dailyfreepress.com
         "recipe",  # NYT
-        "region"  # NYT
-        "review"  # NYT
+        "region",  # NYT
+        "review",  # NYT
         "roster",  # NYT
         "schedule",  # NYT
         "section",  # NYT
+        "seller",  # NYT
         "sports",  # NYT
         "staff",  # dailyfreepress.com
         "stats",  # NYT
@@ -307,6 +318,7 @@ class GNewsCrawler(GNewsCrawlerFull):
         "taxonomy",  # NYT
         "taxonomies",  # dailyfreepress.com
         "teams",  # NYT
+        "venue",  # axs.com
         "vertical",  # NYT
         "video",  # NYT, NPR
         "weather",  # NYT
@@ -374,6 +386,9 @@ if __name__ == "__main__":
         "--sleep", type=float, default=0.1, help="sleep time between page visits"
     )
     ap.add_argument(
+        "--timeout", type=int, default=discover._TO, help="page fetch timeout"
+    )
+    ap.add_argument(
         "--type",
         choices=classes.keys(),
         default=next(iter(classes.keys())),  # first key
@@ -401,7 +416,7 @@ if __name__ == "__main__":
 
     sleep_time = args.sleep
     t0 = time.monotonic()
-    while crawler.visit_one() == VisitResult.MORE:
+    while crawler.visit_one(args.timeout) == VisitResult.MORE:
         time.sleep(sleep_time)
     for res in crawler.results:
         print(res["url"])

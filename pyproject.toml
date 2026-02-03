@@ -1,6 +1,6 @@
 [project]
 name = "sitemap-tools"
-version = "3.0"
+version = "3.0.1"
 description='Media Cloud news sitemap tools'
 readme = "README.md"
 requires-python = ">=3.10"
