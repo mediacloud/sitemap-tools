@@ -1,5 +1,6 @@
 [project]
 name = "sitemap-tools"
+# NOTE! vM.m.latest tag currently needs to be manually applied!
 version = "3.1.0"
 description='Media Cloud news sitemap tools'
 readme = "README.md"
