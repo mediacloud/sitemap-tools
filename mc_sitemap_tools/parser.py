@@ -49,6 +49,19 @@ class SitemapXMLParsingUnexpectedTag(SitemapXMLParsingException):
     """
 
 
+class SitemapXMLParsingIndex(SitemapXMLParsingException):
+    """
+    raised when `urlset_only` parser sees an sitemap index page
+    """
+
+
+class SitemapXMLParsingNoNews(SitemapXMLParsingException):
+    """
+    raised when `max_non_news_urls` urls parser without
+    seeing any news sitemap tags.
+    """
+
+
 # from usp.helpers
 
 
@@ -175,9 +188,17 @@ class XMLSitemapParser:
 
     __XML_NAMESPACE_SEPARATOR = " "
 
-    def __init__(self, url: str, content: str):
+    def __init__(
+        self,
+        url: str,
+        content: str,
+        urlset_only: bool = False,
+        max_non_news_urls: int = 0,
+    ):
         self._url = url
         self._content = content
+        self._urlset_only = urlset_only
+        self._max_non_news_urls = max_non_news_urls
 
         # Will be instantiated when first tag parsed:
         self._concrete_parser: _AbstractXMLSitemapParser | None = None
@@ -252,11 +273,25 @@ class XMLSitemapParser:
         else:
             # Root element -- initialize concrete parser
             if name == "sitemap:urlset":
-                self._concrete_parser = UrlsetXMLSitemapParser(url=self._url)
+                self._concrete_parser = UrlsetXMLSitemapParser(
+                    url=self._url, max_non_news_urls=self._max_non_news_urls
+                )
             elif name == "sitemap:sitemapindex":
+                if self._urlset_only:
+                    # Here when a crawl is at maximum depth:
+                    # Log visibly to see how often it happens.
+
+                    # [PLB I can't currently (2/2026) find a ready
+                    # example of a site that requires this, but I'm
+                    # not ready to allow unchecked deep diving, as the
+                    # cost:benefit ratio could be large]
+                    logger.info("sitemapindex found when only urlset wanted")
+                    raise SitemapXMLParsingIndex()
                 self._concrete_parser = _IndexXMLSitemapParser(url=self._url)
             else:
                 # value documented to be tag name above:
+                # see Error here from:
+                # <Error><Code>AccessDenied</Code><Message>Access Denied</Message></Error>
                 raise SitemapXMLParsingUnexpectedTag(name)
 
     def _xml_element_end(self, name: str) -> None:
@@ -355,12 +390,13 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
     referenced via XMLSitemapParser._concrete_parser
     """
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, max_non_news_urls: int = 0):
         super().__init__(url=url)
 
         self._current_page: SitemapEntry | None = None
         self._pages: list[SitemapEntry] = []
         self._google_news_tags: bool = False
+        self._max_non_news_urls = max_non_news_urls
 
     def xml_element_start(self, name: str, attrs: dict[str, str]) -> None:
         super().xml_element_start(name=name, attrs=attrs)
@@ -406,6 +442,12 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
             if self._current_page and self._current_page not in self._pages:
                 self._pages.append(self._current_page)
             self._current_page = None
+            if (
+                self._max_non_news_urls > 0
+                and len(self._pages) >= self._max_non_news_urls
+                and not self._google_news_tags
+            ):
+                raise SitemapXMLParsingNoNews()
         elif name == "sitemap:urlset":
             # complain if not well formed (extra </url>)
             assert self._current_page is None

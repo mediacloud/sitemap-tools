@@ -93,7 +93,13 @@ class NewsDiscoverer:
         resp = sess.get(url, allow_redirects=True, timeout=(timeout, timeout))
         return resp
 
-    def sitemap_get(self, url: str, timeout: int = _TO) -> parser.BaseSitemap | None:
+    def sitemap_get(
+        self,
+        url: str,
+        timeout: int = _TO,
+        urlset_only: bool = False,
+        max_non_news_urls: int = 0,
+    ) -> parser.BaseSitemap | None:
         try:
             resp = self.page_get(url, timeout=timeout)
             # defined as UTF-8; using resp.text runs character
@@ -103,7 +109,7 @@ class NewsDiscoverer:
             # which is 33,221,811 bytes (still have to parse it all).
             text = resp.content.decode("utf-8")
             logger.info("%s: got %d chars", url, len(text))
-            p = parser.XMLSitemapParser(url, text)
+            p = parser.XMLSitemapParser(url, text, urlset_only, max_non_news_urls)
             return p.sitemap()
         except Exception as e:
             logger.info("%s %.1024r", url, e)
@@ -305,13 +311,15 @@ class NewsDiscoverer:
 if __name__ == "__main__":
     import sys
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(
+        level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s"
+    )
 
     def usage() -> None:
         sys.stderr.write(f"Usage: {sys.argv[0]} DOMAIN\n")
         sys.exit(1)
 
-    nd = NewsDiscoverer(MEDIA_CLOUD_USER_AGENT)
+    nd = NewsDiscoverer(MEDIA_CLOUD_USER_AGENT)  # for Media Cloud testing!!!
 
     # add static tests?
     def test(urls: list[str], expect: list[str]) -> None:

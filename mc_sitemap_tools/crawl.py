@@ -65,14 +65,20 @@ class BaseCrawler:
     UNPUB_DEPTH = 1  # 0 to prefer to files in robots.txt
 
     def __init__(
-        self, home_page: str, user_agent: str, max_depth: int, max_results: int
+        self,
+        home_page: str,
+        user_agent: str,
+        max_depth: int,
+        max_results: int,
+        max_non_news_urls: int = 0,
     ):
         if not home_page.endswith("/"):
             home_page += "/"
         self.home_page = home_page
         self.user_agent = user_agent
-        self.max_depth = max_depth
+        self.max_depth = max_depth  # required: use very large number to bypass!
         self.max_results = max_results
+        self.max_non_news_urls = max_non_news_urls  # zero means don't check
 
         self.results: list[parser.Urlset] = []
         self.news_discoverer = discover.NewsDiscoverer(user_agent)
@@ -168,10 +174,16 @@ class BaseCrawler:
             url = page.url
             logger.info("getting %s %g %d %s", url, page.pref, page.depth, page.origin)
             # fetch and parse page:
+            sitemap = None
             try:
-                sitemap = self.news_discoverer.sitemap_get(url, timeout)
-            except self.FETCH_EXCEPTIONS:  #
-                sitemap = None
+                sitemap = self.news_discoverer.sitemap_get(
+                    url,
+                    timeout,
+                    urlset_only=page.depth + 1 > self.max_depth,
+                    max_non_news_urls=self.max_non_news_urls,
+                )
+            except self.FETCH_EXCEPTIONS:
+                pass
 
             if sitemap:  # fetched and parsed ok
                 smt = sitemap["type"]
@@ -241,10 +253,14 @@ class GNewsCrawler(GNewsCrawlerFull):
     with heuristics/pruning
     """
 
-    # DATE_RE and YEAR_RE are class members to allow override;
-    # applied to case-flattened {path}?{query}
-    # matching either causes page_pref to return DISCARD.
+    # If path[?query] from the URL matches (unanchored) against any of
+    # the following, the page is skipped.
 
+    # Currently accepting single digits in path names:
+    # (https://www.digitaltrends.com/sitemap-google-news-sitemap_1.xml
+    # seems to be current), but counting to double digits are right out!
+
+    # examples:
     # https://googlecrawl.npr.org/standard/sitemap_standard_01-Jan-90.xml
     # https://nypost.com/sitemap-1865.xml
     # https://nypost.com/sitemap-1999.xml?mm=12&dd=31
@@ -257,6 +273,8 @@ class GNewsCrawler(GNewsCrawlerFull):
     # https://www.nytimes.com/sitemaps/new/cooking-1982-09.xml.gz
     # https://www.nytimes.com/sitemaps/new/sitemap-1851-09.xml.gz
     # https://www.sfgate.com/sitemap/65000-70000.xml
+    # https://www.bartleby.com/static/sitemap-105.xml
+    # https://www.bartleby.com/sitemap-papers-950000.xml
     SKIP_RE = re.compile(
         "|".join(
             [
@@ -266,15 +284,20 @@ class GNewsCrawler(GNewsCrawlerFull):
                 r"(^|\D)(1[89]|2[012])\d\d($|\D|[01]\d)",
                 r"[12]\d\d\d-[01]\d-[0-3]\d",
                 r"\d\d-[a-z][a-z][a-z]-\d\d",
+                r"high-school-answers",  # bartleby.com
+                r"high-school-textbooks",  # bartleby.com
                 r"page=\d\d",
                 r"post-\d\d",
                 r"quotesitemap\d",
                 r"sitemap=\d\d",
                 r"sitemap\d\d",
+                r"sitemap-\d\d",  # bartleby.com
+                r"sitemap-papers-\d\d",  # bartleby.com
                 r"sitemapall\d",
                 r"sitemapvideoall\d",
                 r"tag-\d\d",
                 r"\d\d\d\d-\d\d\d\d",
+                r"\d\d\.xml",  # bartleby.com
             ]
         )
     )
@@ -300,14 +323,17 @@ class GNewsCrawler(GNewsCrawlerFull):
         "books",
         "cities",  # NYT
         "category",  # investors.com
+        "categories",  # bartleby.com
         "collects",  # NYT
         "companies",  # bloomberg
         "company",  # bloomberg
         "cooking",  # NYT
         "event",  # axs.com
+        "high-school-answers",  # bartleby.com
         "games",  # NYT
         "local",
         "market-data",  # WSJ
+        "papers",  # bartleby.com
         "people",  # bloomberg
         "performer",  # axs.com
         "profile",  # bloomberg, dailyfreepress.com
@@ -409,7 +435,9 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     if not args.quiet:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+        )
 
     # http://www.ap.com has a small map, www.npr.org and www.nytimes.com are large!
     # record so far is univision.com w/ three news sitemaps
@@ -418,11 +446,17 @@ if __name__ == "__main__":
 
     # The first site examined (csmonitor.com) turned out to have a google
     # news sitemap URL in a sitemap file referenced by robots.txt.
+
+    # https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap
+    # says "... a sitemap may have up to 1,000 news:news tags", and we're hoping for
+    # files with nuthin' but news, so punt "early" if no news tags seen.
+    # parsing 5k entries taking about 600ms on ifill.
     crawler = cls(
         home_page=args.home_page,
         user_agent=MEDIA_CLOUD_USER_AGENT,
         max_depth=args.max_depth,
         max_results=args.max_results,
+        max_non_news_urls=5000,
     )
 
     sleep_time = args.sleep
@@ -431,4 +465,5 @@ if __name__ == "__main__":
         time.sleep(sleep_time)
     for res in crawler.results:
         print(res["url"])
-    print(crawler.pages_visited, "pages visited in", time.monotonic() - t0, "seconds")
+    t = time.monotonic() - t0
+    print(f"{crawler.pages_visited} pages visited in {t:.6g} seconds")
