@@ -15,6 +15,11 @@
 		+ Fixes
 	* 3.0.2:
 		+ Fix crawler main, update this file!
+	* 3.0.3:
+		+ discover.py:
+			Truncate exception representations to 1K to deal
+			with UnicodeDecodeErrors containing the WHOLE
+			document body
 
 ## Version 2
 

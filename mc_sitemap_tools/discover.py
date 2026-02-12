@@ -106,7 +106,7 @@ class NewsDiscoverer:
             p = parser.XMLSitemapParser(url, text)
             return p.sitemap()
         except Exception as e:
-            logger.info("%s %r", url, e)
+            logger.info("%s %.1024r", url, e)
             return None
 
     def check_sitemap_type(self, url: str, sm: parser.BaseSitemap, accept: int) -> bool:
@@ -160,7 +160,7 @@ class NewsDiscoverer:
         try:
             resp = self.page_get(robots_txt_url, timeout=timeout)
         except requests.RequestException as exc:
-            logger.info("robots_sitemaps url %s: %r", url, exc)
+            logger.info("robots_sitemaps url %s: %.1024r", url, exc)
             return []
 
         if not resp or not resp.text:
@@ -221,7 +221,7 @@ class NewsDiscoverer:
                 if sm:
                     urls.append(url)
             except requests.RequestException as exc:
-                logger.info("robots_gnews_sitemaps url %s: %r", url, exc)
+                logger.info("robots_gnews_sitemaps url %s: %.1024r", url, exc)
         return urls
 
     def unpublished_gnews_sitemaps(
@@ -243,7 +243,7 @@ class NewsDiscoverer:
                 if sm:
                     urls.append(url)
             except requests.RequestException as exc:
-                logger.info("unpublished_gnews_sitemaps url %s: %r", url, exc)
+                logger.info("unpublished_gnews_sitemaps url %s: %.1024r", url, exc)
         return urls
 
     def _unpub_path(self, url: str) -> bool:
