@@ -2,9 +2,19 @@
 
 * add new enries at top!
 * update version number in pyproject.toml
-* add tag v{major}.{minor}.{patch} and push to github
-* adding a new function requires a new minor version
+* add tag v{major}.{minor}.{patch} AND v{major}.{minor}.latest and push to github
+* adding a new function or optional argument requires a new minor version
 * removing a function or adding a new mandatory arg requires a new major version
+
+
+## Version 4
+
+### 4.0
+	* 4.0.0:
+		+ Removed Crawler home_page argument (breaking change)
+		+ Add Crawler start method (can be restarted w/ altername home/base)
+		+ `venv/bin/python -m mc_sitemap_tools.crawl` takes multiple urls
+		+ start `add_unpublished` allow user to determine when to add
 
 ## Version 3
 

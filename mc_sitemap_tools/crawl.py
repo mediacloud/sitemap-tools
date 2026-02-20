@@ -50,6 +50,12 @@ class VisitResult(Enum):
 DISCARD = 10
 
 
+class CrawlerException(Exception):
+    """
+    class for crawler errors
+    """
+
+
 class BaseCrawler:
     """
     enscapsulate state for crawling a site.
@@ -66,15 +72,12 @@ class BaseCrawler:
 
     def __init__(
         self,
-        home_page: str,
         user_agent: str,
         max_depth: int,
         max_results: int,
         max_non_news_urls: int = 0,
     ):
-        if not home_page.endswith("/"):
-            home_page += "/"
-        self.home_page = home_page
+        self.home_page: str | None = None
         self.user_agent = user_agent
         self.max_depth = max_depth  # required: use very large number to bypass!
         self.max_results = max_results
@@ -87,9 +90,19 @@ class BaseCrawler:
         self.get_robots = True  # starting state
         self.robots_urls: list[str] = []
         self.pages_visited = 0
+        self._started = False
 
     def page_pref(self, url: str) -> float:
         return 0.0
+
+    def start(self, home_page: str, add_unpublished: bool = True) -> None:
+        if not home_page.endswith("/"):
+            home_page += "/"
+        logger.info("start home_page %s", home_page)
+        self.home_page = home_page
+        self.add_unpublished = add_unpublished
+        self.get_robots = True
+        self._started = True
 
     def _add_url(
         self, depth: int, url: str, origin: str, pref: float | None = None
@@ -104,11 +117,13 @@ class BaseCrawler:
             if pref is None:
                 pref = self.page_pref(url)
             if pref >= self.DISCARD_PREF:
-                logger.info("skipping %s %d %g %s", url, depth, pref, origin)
+                logger.info("discarding %s %d %g %s", url, depth, pref, origin)
             else:
-                logger.info("adding %s %g %d %s", url, pref, depth, origin)
+                logger.info("saving %s %g %d %s", url, pref, depth, origin)
                 page = PageTuple(url=url, depth=depth, pref=pref, origin=origin)
                 heapq.heappush(self.to_visit, page)
+        else:
+            logger.info("skipping %s %d %s", nurl, depth, origin)
 
     def _add_list(
         self,
@@ -122,6 +137,8 @@ class BaseCrawler:
         add list of urls to visit
         if `add_home_page` is True, prepend `home_page` to each url
         """
+        assert self._started
+        assert self.home_page
         for url in url_list:
             if add_home_page:
                 url = self.home_page + url
@@ -143,6 +160,10 @@ class BaseCrawler:
         visit one page, returns True while more work to be done
         to allow running as a background activity
         """
+        if not self._started:
+            raise CrawlerException("need to call start")
+        assert self.home_page
+
         self.pages_visited += 1
         if self.get_robots:  # starting?
             # initial state: seed visit list with pages in robots.txt
@@ -163,8 +184,8 @@ class BaseCrawler:
             except self.FETCH_EXCEPTIONS:
                 pass
 
-            # maybe only add these AFTER robots.txt paths exhausted?
-            self.add_unpublished_paths()
+            if self.add_unpublished:
+                self.add_unpublished_paths()
 
             self.get_robots = False  # initialized
             # robots.txt counts as a visit
@@ -208,6 +229,7 @@ class BaseCrawler:
 
         if len(self.to_visit) > 0:
             return VisitResult.MORE
+        self._started = False
         return VisitResult.FIN
 
     def save(self, urls: parser.Urlset, pref: float) -> bool:
@@ -431,7 +453,7 @@ if __name__ == "__main__":
         default=next(iter(classes.keys())),  # first key
         help="type of crawl",
     )
-    ap.add_argument("home_page", help="base url (home page) for crawl")
+    ap.add_argument("home_page", nargs="+", help="base url (home page) for crawl")
     args = ap.parse_args()
 
     if not args.quiet:
@@ -452,7 +474,6 @@ if __name__ == "__main__":
     # files with nuthin' but news, so punt "early" if no news tags seen.
     # parsing 5k entries taking about 600ms on ifill.
     crawler = cls(
-        home_page=args.home_page,
         user_agent=MEDIA_CLOUD_USER_AGENT,
         max_depth=args.max_depth,
         max_results=args.max_results,
@@ -461,8 +482,11 @@ if __name__ == "__main__":
 
     sleep_time = args.sleep
     t0 = time.monotonic()
-    while crawler.visit_one(args.timeout) == VisitResult.MORE:
-        time.sleep(sleep_time)
+    for home in args.home_page:
+        crawler.start(home)
+        while crawler.visit_one(args.timeout) == VisitResult.MORE:
+            time.sleep(sleep_time)
+
     for res in crawler.results:
         print(res["url"])
     t = time.monotonic() - t0
