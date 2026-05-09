@@ -1,7 +1,8 @@
 [project]
 name = "sitemap-tools"
 # NOTE! vM.m.latest tag currently needs to be manually applied!
-version = "4.0.0"
+# ALSO UPDATE CHANGELOG.md
+version = "4.0.1"
 description='Media Cloud news sitemap tools'
 readme = "README.md"
 requires-python = ">=3.10"

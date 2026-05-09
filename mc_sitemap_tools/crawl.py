@@ -297,29 +297,19 @@ class GNewsCrawler(GNewsCrawlerFull):
     # https://www.sfgate.com/sitemap/65000-70000.xml
     # https://www.bartleby.com/static/sitemap-105.xml
     # https://www.bartleby.com/sitemap-papers-950000.xml
+    # https://www.netflix.com/sitemap/title/81728272
     SKIP_RE = re.compile(
         "|".join(
             [
                 "date=",
                 "year=",
                 "yyyy=",
-                r"(^|\D)(1[89]|2[012])\d\d($|\D|[01]\d)",
-                r"[12]\d\d\d-[01]\d-[0-3]\d",
-                r"\d\d-[a-z][a-z][a-z]-\d\d",
-                r"high-school-answers",  # bartleby.com
-                r"high-school-textbooks",  # bartleby.com
-                r"page=\d\d",
-                r"post-\d\d",
+                r"\d\d",  # 2026-05-08
+                "high-school-answers",  # bartleby.com
+                "high-school-textbooks",  # bartleby.com
                 r"quotesitemap\d",
-                r"sitemap=\d\d",
-                r"sitemap\d\d",
-                r"sitemap-\d\d",  # bartleby.com
-                r"sitemap-papers-\d\d",  # bartleby.com
                 r"sitemapall\d",
                 r"sitemapvideoall\d",
-                r"tag-\d\d",
-                r"\d\d\d\d-\d\d\d\d",
-                r"\d\d\.xml",  # bartleby.com
             ]
         )
     )

@@ -15,6 +15,8 @@
 		+ Add Crawler start method (can be restarted w/ altername home/base)
 		+ `venv/bin/python -m mc_sitemap_tools.crawl` takes multiple urls
 		+ start `add_unpublished` allow user to determine when to add
+	* 4.0.1:
+		+ crawl.py: Ignore all URL with two digits
 
 ## Version 3
 
