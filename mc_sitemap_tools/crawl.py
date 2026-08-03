@@ -310,6 +310,10 @@ class GNewsCrawler(GNewsCrawlerFull):
                 r"quotesitemap\d",
                 r"sitemapall\d",
                 r"sitemapvideoall\d",
+                # LARGE files: maybe capture these in a list to only
+                # return if nothing else came up?
+                r"megasitemap/\d",  # many papers
+                r"sitemap-news-archive_\d",  # NFL teams
             ]
         )
     )
@@ -321,7 +325,11 @@ class GNewsCrawler(GNewsCrawlerFull):
     PREF_TOKENS: list[tuple[str, float]] = [
         ("google-news", -10),
         ("googlenews", -10),
+        ("sitemap-fast-changing", -10),  # NFL teams w/ archives
+        ("sitemapforgoogle", -10),  # news sites w/ megasitemaps
         ("news", -5),
+        ("/sitemap.xml", -2),  # traverse before canned URLs
+        ("/sitemap-index.xml", -2),  # traverse before canned URLs
         (".html", DISCARD),
     ]
 

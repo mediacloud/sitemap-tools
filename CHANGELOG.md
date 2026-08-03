@@ -4,8 +4,22 @@
 * update version number in pyproject.toml
 * add tag v{major}.{minor}.{patch} AND v{major}.{minor}.latest and push to github
 * adding a new function or optional argument requires a new minor version
-* removing a function or adding a new mandatory arg requires a new major version
+* removing a function, adding a new mandatory arg,
+	or changing default behavior of a function requires a new major version
 
+
+## Version 5
+
+	* 5.0.0:
+		+ crawl.py: NEVER return large megasitemap and sitemap-news-archive_\d
+			Promote	sitemap-fast-changing (NFL team sites with archives)
+				sitemapforgoogle (sites with megasitemaps)
+				/sitemap.xml /sitemap-index.xml (visit earlier)
+		+ release.py: new script using mc-deploy for tagging/pushing
+		+ pyproject.toml: add mc-deploy in "release" extras
+		+ .pre-commit-run.sh: install release extras
+		+ Makefile: install release extras along with dev
+			add make help, release, install
 
 ## Version 4
 

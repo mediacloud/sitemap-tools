@@ -38,7 +38,7 @@ if cmp -s pyproject.toml $TMP; then
 else
     echo installing pre-commit optional dependencies >> $LOG
     # --editable skips installing project package
-    if python3 -m pip install --editable '.[pre-commit]'; then
+    if python3 -m pip install --editable '.[pre-commit,release]'; then
 	cp -p pyproject.toml $TMP
 	echo done >> $LOG
     else
