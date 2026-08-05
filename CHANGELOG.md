@@ -21,6 +21,10 @@
 		+ Makefile: install release extras along with dev
 			add make help, release, install
 
+	* 5.0.1:
+		+ collect oversize gnews urlsets
+		+ if everything oversized return the smallest
+
 ## Version 4
 
 ### 4.0

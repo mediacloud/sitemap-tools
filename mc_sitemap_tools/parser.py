@@ -167,6 +167,7 @@ class Urlset(BaseSitemap):
 
     google_news_tags: bool
     pages: list[SitemapEntry]
+    npages: int
 
 
 class Index(BaseSitemap):
@@ -488,6 +489,7 @@ class UrlsetXMLSitemapParser(_AbstractXMLSitemapParser):
             type="urlset",
             google_news_tags=self._google_news_tags,
             pages=pages,
+            npages=len(pages),
             last_fetch_ts=time.time(),
             size=size,
         )

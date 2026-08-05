@@ -49,11 +49,31 @@ class VisitResult(Enum):
 
 DISCARD = 10
 
+# https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap
+# says: "a sitemap may have up to 1,000 news:news tags. If
+#  there are more than 1,000 <news:news> tags in a news
+#  sitemap, split your sitemap into several smaller sitemaps"
+_MAX_PAGES = 1000
+
 
 class CrawlerException(Exception):
     """
     class for crawler errors
     """
+
+
+class Oversize(NamedTuple):
+    urlset: parser.Urlset
+    pref: float
+
+
+def _sort_oversize(ov: Oversize) -> tuple[int, float]:
+    """
+    used to sort _oversize list:
+    prefer smaller files, break ties on URL preference
+    """
+    # print(ov.urlset["url"], ov.urlset["npages"], ov.pref)  # DEBUG
+    return (ov.urlset["npages"], ov.pref)
 
 
 class BaseCrawler:
@@ -69,6 +89,7 @@ class BaseCrawler:
     TRY_UNPUBLISHED_INDEX_PATHS = False
     DISCARD_PREF = DISCARD
     UNPUB_DEPTH = 1  # 0 to prefer to files in robots.txt
+    MAX_PAGES = _MAX_PAGES
 
     def __init__(
         self,
@@ -83,7 +104,8 @@ class BaseCrawler:
         self.max_results = max_results
         self.max_non_news_urls = max_non_news_urls  # zero means don't check
 
-        self.results: list[parser.Urlset] = []
+        self._results: list[parser.Urlset] = []
+        self._oversize: list[Oversize] = []  # more than MAX_PAGES
         self.news_discoverer = discover.NewsDiscoverer(user_agent)
         self.to_visit: list[PageTuple] = []  # managed by heapq
         self.seen: set[str] = set()
@@ -232,13 +254,32 @@ class BaseCrawler:
         self._started = False
         return VisitResult.FIN
 
-    def save(self, urls: parser.Urlset, pref: float) -> bool:
+    def save(self, urlset: parser.Urlset, pref: float) -> bool:
         """
         return True to cause visit_one to return DONE
         """
-        logger.info("saving %s %g", urls["url"], pref)
-        self.results.append(urls)
-        return len(self.results) >= self.max_results
+        npages = urlset["npages"]
+        logger.info("saving %s %g %d", urlset["url"], pref, npages)
+        if npages > self.MAX_PAGES:
+            self._oversize.append(Oversize(urlset, pref))
+        else:
+            self._results.append(urlset)
+        return len(self._results) >= self.max_results
+
+    @property
+    def results(self) -> list[parser.Urlset]:
+        """
+        property for back compatibility
+        """
+        if self._results:
+            return self._results
+
+        if not self._oversize:
+            return []
+
+        # here with livingstonparishnews.com 8/2026
+        self._oversize.sort(key=_sort_oversize)  # smallest first
+        return [self._oversize[0].urlset]  # list of one
 
 
 class GNewsCrawlerFull(BaseCrawler):
@@ -308,12 +349,7 @@ class GNewsCrawler(GNewsCrawlerFull):
                 "high-school-answers",  # bartleby.com
                 "high-school-textbooks",  # bartleby.com
                 r"quotesitemap\d",
-                r"sitemapall\d",
                 r"sitemapvideoall\d",
-                # LARGE files: maybe capture these in a list to only
-                # return if nothing else came up?
-                r"megasitemap/\d",  # many papers
-                r"sitemap-news-archive_\d",  # NFL teams
             ]
         )
     )
